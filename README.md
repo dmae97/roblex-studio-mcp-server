@@ -192,6 +192,110 @@ Parameters:
 - `src/prompts/` - MCP prompts implementation
 - `src/api/` - Roblex API client implementation
 
+### MCP Integration Examples
+
+Here are examples of how to use this MCP server with various LLM applications:
+
+#### Example 1: Using the API with Claude
+
+```javascript
+// Example code for calling the MCP server from a web application using Claude
+async function callRoblexMcp() {
+  const response = await fetch('https://your-claude-api-endpoint/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer your-claude-api-key'
+    },
+    body: JSON.stringify({
+      model: "claude-3-opus-20240229",
+      messages: [
+        {
+          role: "user",
+          content: "Can you help me create a platformer game in Roblex Studio?"
+        }
+      ],
+      tool_choice: "auto",
+      tools: [
+        {
+          function: {
+            name: "mcp",
+            description: "Call the Roblex Studio MCP server",
+            parameters: {
+              type: "object",
+              properties: {
+                server_url: {
+                  type: "string",
+                  description: "URL of the MCP server"
+                },
+                tool_name: {
+                  type: "string",
+                  description: "Name of the MCP tool to call"
+                },
+                tool_parameters: {
+                  type: "object",
+                  description: "Parameters for the MCP tool"
+                }
+              },
+              required: ["server_url", "tool_name"]
+            }
+          }
+        }
+      ]
+    })
+  });
+  
+  return await response.json();
+}
+```
+
+#### Example 2: Using MCP Server as a CLI Tool
+
+You can also use the MCP server through command-line:
+
+```bash
+# Install MCP client CLI
+npm install -g @modelcontextprotocol/cli
+
+# Connect to your MCP server
+mcp connect http://localhost:3000
+
+# Use MCP tools
+mcp tool generate-roblex-code --scriptType=ServerScript --functionality="Handle player movement" --includeComments=true
+
+# Access templates
+mcp resource template://roblex/game/platformer
+```
+
+#### Example 3: Connecting with Anthropic's Claude Sonnet
+
+```python
+import anthropic
+from anthropic.tool_use import MCP
+
+# Initialize Claude client
+client = anthropic.Client(api_key="your-anthropic-api-key")
+
+# Create MCP connection
+mcp = MCP(server_url="http://localhost:3000")
+
+# Send message to Claude with MCP capabilities
+response = client.messages.create(
+    model="claude-3-sonnet-20240229",
+    max_tokens=1000,
+    system="You are a helpful AI assistant with access to Roblex Studio MCP server.",
+    messages=[
+        {
+            "role": "user",
+            "content": "I want to create a multiplayer game in Roblex Studio. What tools should I use?"
+        }
+    ],
+    tools=[mcp.to_tool()]
+)
+
+print(response.content)
+```
+
 ### Scripts
 
 - `npm run build` - Build the project
@@ -199,6 +303,10 @@ Parameters:
 - `npm start` - Run the production server
 - `npm run lint` - Run linting
 - `npm test` - Run tests
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
