@@ -1,31 +1,32 @@
-# Roblex Studio MCP Server
+# Roblox Studio MCP Server
 
-A Model Context Protocol (MCP) server implementation for Roblex Studio, built with TypeScript.
+A Model Context Protocol (MCP) server implementation for Roblox Studio, built with TypeScript.
 
 ## Overview
 
-This MCP server provides resources, tools, and prompts specifically designed for Roblex Studio development. It enables LLM applications to access Roblex Studio documentation, templates, code generation capabilities, and other features through a standardized interface.
+This MCP server provides resources, tools, and prompts specifically designed for Roblox Studio development. It enables LLM applications to access Roblox Studio documentation, templates, code generation capabilities, and other features through a standardized interface.
 
 ## Features
 
-- **Resources**: Access Roblex Studio documentation and code templates
-- **Tools**: Generate and validate Roblex code, find assets, and more
-- **Prompts**: Use specialized prompts for script generation and bug finding
-- **API Integration**: Connect directly to the Roblex Studio API
-- **Interactive Systems**: Create dialogue systems and UI interfaces
+- **Resources**: Access Roblox Studio documentation, API references, and code templates
+- **Tools**: Generate and validate Luau code, find assets, and create game components
+- **Prompts**: Use specialized prompts for script generation, bug finding, and performance optimization
+- **API Integration**: Connect directly to the Roblox API and Open Cloud API
+- **Interactive Systems**: Create dialogue systems, UI interfaces, and complex gameplay mechanics
 
 ## Prerequisites
 
 - Node.js >= 18.x
 - npm or yarn
-- Roblex Studio API key (for API integration features)
+- Roblox API key (for API integration features)
+- Roblox Open Cloud API key (for Open Cloud features)
 
 ## Installation
 
 1. Clone the repository
 ```bash
-git clone https://github.com/dmae97/roblex-studio-mcp-server.git
-cd roblex-studio-mcp-server
+git clone https://github.com/dmae97/roblox-studio-mcp-server.git
+cd roblox-studio-mcp-server
 ```
 
 2. Install dependencies
@@ -38,9 +39,11 @@ npm install
 cp .env.example .env
 ```
 
-4. Update the `.env` file with your Roblex Studio API key
+4. Update the `.env` file with your Roblox API key and other configurations
 ```
-ROBLEX_API_KEY=your_api_key_here
+ROBLOX_API_KEY=your_api_key_here
+ROBLOX_OPEN_CLOUD_API_KEY=your_open_cloud_api_key_here
+ROBLOX_OPEN_CLOUD_UNIVERSE_ID=your_universe_id_here
 ```
 
 5. Build the project
@@ -67,34 +70,38 @@ The server will start on port 3000 by default (configurable in `.env`).
 - `GET /sse` - Server-Sent Events endpoint for MCP communication
 - `POST /messages` - Message endpoint for MCP communication
 - `GET /health` - Health check endpoint
+- `GET /metrics` - Server metrics endpoint (when enabled)
 
 ## Resources
 
 ### Documentation
 
-- `docs://api/{section}` - Access Roblex Studio API documentation
+- `docs://api/{section}` - Access Roblox Studio API documentation
 - `docs://api` - List available documentation sections
+- `docs://luau` - Luau language documentation and best practices
+- `docs://services/{service}` - Documentation for specific Roblox services
 
 ### Templates
 
-- `template://roblex/{category}/{name}` - Access code templates
-- `template://roblex` - List available templates
+- `template://roblox/{category}/{name}` - Access code templates
+- `template://roblox` - List available templates
+- `template://ui/{component}` - UI component templates using Roblox UI
 
 ## Tools
 
 ### Code Generator
 
-The `generate-roblex-code` tool generates Roblex code based on user specifications.
+The `generate-roblox-code` tool generates Roblox Luau code based on user specifications.
 
 Parameters:
 - `scriptType`: Type of script to generate (ServerScript, LocalScript, ModuleScript)
 - `functionality`: Description of what the script should do
 - `includeComments`: Whether to include comments in the code
-- `targetRoblexVersion`: (Optional) Target Roblex version
+- `targetRobloxVersion`: (Optional) Target Roblox version
 
 ### Asset Finder
 
-The `find-roblex-assets` tool finds Roblex assets based on user criteria.
+The `find-roblox-assets` tool finds Roblox assets based on user criteria.
 
 Parameters:
 - `assetType`: Type of asset to find (Model, Decal, Mesh, Animation, Sound, Texture)
@@ -104,86 +111,72 @@ Parameters:
 
 ### Script Validator
 
-The `validate-roblex-script` tool validates Roblex scripts for syntax errors and best practices.
+The `validate-roblox-script` tool validates Luau scripts for syntax errors and best practices.
 
 Parameters:
-- `scriptContent`: The Lua script content to validate
+- `scriptContent`: The Luau script content to validate
 - `scriptType`: Type of script (ServerScript, LocalScript, ModuleScript)
 - `checkBestPractices`: Whether to check for best practices
 - `checkPerformance`: Whether to check for performance issues
 
-### Interactive Systems
+### New Tools
 
-#### Dialogue System Generator
+#### Data Store Manager
 
-The `create-dialogue-tree` tool generates complete dialogue system code for NPCs.
-
-Parameters:
-- `npcName`: Name of the NPC character
-- `dialogueNodes`: Array of dialogue nodes forming the conversation tree
-- `defaultAnimation`: (Optional) Default animation to play when NPC speaks
-- `includeUI`: Whether to include UI creation code
-- `includeEvents`: Whether to include event handling code
-
-#### Dialogue Kit Integration
-
-The `integrate-dialogue-kit` tool generates code that integrates with the Dialogue Kit system.
+The `create-datastore-system` tool generates complete DataStore code for persistent data management.
 
 Parameters:
-- `dialogueData`: Array of NPCs with their dialogue data
-- `createModuleScript`: Whether to create a module script structure
+- `datastoreName`: Name of the DataStore
+- `dataStructure`: Structure of the data to be stored
+- `sessionCaching`: Whether to include session caching logic
+- `backupStrategy`: Data backup strategy
+- `playerData`: Whether this is for player data
 
-### Roblex API Connector
+#### Physics System Generator
 
-Tools for directly connecting to the Roblex Studio API:
+The `create-physics-system` tool generates physics-based systems for Roblox.
+
+Parameters:
+- `objectName`: Name of the physical object
+- `objectType`: Type of physical object
+- `size`: Size dimensions
+- `material`: Material type
+- `physicsProperties`: Density, friction, etc.
+- `constraints`: Optional physical constraints
+
+#### UI Builder
+
+The `create-ui-system` tool generates Roblox UI code.
+
+Parameters:
+- `uiType`: Type of UI (Menu, HUD, Dialog, Inventory)
+- `elements`: UI elements to include
+- `responsive`: Whether the UI should be responsive
+- `stylePreset`: Visual style preset to use
+
+### Roblox API Connectors
+
+Tools for directly connecting to the Roblox API:
 
 #### Search Assets API
 
-The `roblex-search-assets` tool searches for assets using the official Roblex API.
+The `roblox-search-assets` tool searches for assets using the official Roblox API.
+
+#### Open Cloud Integration
+
+The `roblox-open-cloud` tool provides access to Roblox Open Cloud API features.
 
 Parameters:
-- `query`: Search query
-- `assetType`: (Optional) Type of asset to search for
-- `limit`: Maximum number of results (default: 10, max: 100)
-- `offset`: Pagination offset (default: 0)
-
-#### Validate Script API
-
-The `roblex-validate-script` tool validates scripts using the official Roblex API.
-
-Parameters:
-- `scriptContent`: The Lua script content to validate
-- `scriptType`: Type of script
-
-#### Create Script API
-
-The `roblex-create-script` tool creates a script using the official Roblex API.
-
-Parameters:
-- `name`: Name of the script
-- `type`: Type of script
-- `content`: Script content
-- `parentId`: (Optional) ID of the parent object
-
-#### Get Asset API
-
-The `roblex-get-asset` tool gets asset information using the official Roblex API.
-
-Parameters:
-- `assetId`: ID of the asset to get
-
-#### Get User Profile API
-
-The `roblex-get-user-profile` tool gets user profile information using the official Roblex API.
-
-Parameters:
-- `userId`: ID of the user
+- `feature`: Open Cloud feature to use
+- `universeId`: Universe ID to operate on
+- `actionType`: Type of action to perform
+- `data`: Data for the action
 
 ## Prompts
 
 ### Script Generator
 
-The `generate-script` prompt helps generate Roblex scripts with AI assistance.
+The `generate-script` prompt helps generate Roblox scripts with AI assistance.
 
 Parameters:
 - `scriptType`: Type of script to generate
@@ -197,11 +190,21 @@ Parameters:
 The `find-bugs` prompt analyzes scripts for bugs and suggests improvements.
 
 Parameters:
-- `scriptContent`: The Lua script content to analyze
+- `scriptContent`: The Luau script content to analyze
 - `scriptType`: Type of script
 - `checkPerformance`: Whether to check for performance issues
 - `checkSecurity`: Whether to check for security issues
 - `suggestImprovements`: Whether to suggest improvements
+
+### Performance Optimizer
+
+The `optimize-performance` prompt analyzes and optimizes Roblox scripts for better performance.
+
+Parameters:
+- `scriptContent`: The script to optimize
+- `targetFPS`: Target frames per second
+- `optimizationLevel`: Level of optimization to apply
+- `preserveReadability`: Whether to prioritize readability
 
 ## Development
 
@@ -212,8 +215,11 @@ Parameters:
 - `src/tools/` - MCP tools implementation
 - `src/resources/` - MCP resources implementation
 - `src/prompts/` - MCP prompts implementation
-- `src/api/` - Roblex API client implementation
+- `src/api/` - Roblox API client implementation
 - `src/tools/interactive/` - Interactive systems and UI tools
+- `src/tools/physics/` - Physics system tools
+- `src/tools/datastore/` - DataStore management tools
+- `src/tools/opencloud/` - Open Cloud API integration
 
 ### MCP Integration Examples
 
@@ -223,7 +229,7 @@ Here are examples of how to use this MCP server with various LLM applications:
 
 ```javascript
 // Example code for calling the MCP server from a web application using Claude
-async function callRoblexMcp() {
+async function callRobloxMcp() {
   const response = await fetch('https://your-claude-api-endpoint/messages', {
     method: 'POST',
     headers: {
@@ -235,7 +241,7 @@ async function callRoblexMcp() {
       messages: [
         {
           role: "user",
-          content: "Can you help me create a platformer game in Roblex Studio?"
+          content: "Can you help me create a platformer game in Roblox Studio?"
         }
       ],
       tool_choice: "auto",
@@ -243,7 +249,7 @@ async function callRoblexMcp() {
         {
           function: {
             name: "mcp",
-            description: "Call the Roblex Studio MCP server",
+            description: "Call the Roblox Studio MCP server",
             parameters: {
               type: "object",
               properties: {
@@ -284,13 +290,13 @@ npm install -g @modelcontextprotocol/cli
 mcp connect http://localhost:3000
 
 # Use MCP tools
-mcp tool generate-roblex-code --scriptType=ServerScript --functionality="Handle player movement" --includeComments=true
+mcp tool generate-roblox-code --scriptType=ServerScript --functionality="Handle player movement" --includeComments=true
 
 # Access templates
-mcp resource template://roblex/game/platformer
+mcp resource template://roblox/game/platformer
 ```
 
-#### Example 3: Connecting with Anthropic's Claude Sonnet
+#### Example 3: Connecting with Anthropic's Claude
 
 ```python
 import anthropic
@@ -306,11 +312,11 @@ mcp = MCP(server_url="http://localhost:3000")
 response = client.messages.create(
     model="claude-3.7-sonnet-20250219",
     max_tokens=1000,
-    system="You are a helpful AI assistant with access to Roblex Studio MCP server.",
+    system="You are a helpful AI assistant with access to Roblox Studio MCP server.",
     messages=[
         {
             "role": "user",
-            "content": "I want to create a multiplayer game in Roblex Studio. What tools should I use?"
+            "content": "I want to create a multiplayer game in Roblox Studio. What tools should I use?"
         }
     ],
     tools=[mcp.to_tool()]
@@ -326,6 +332,15 @@ print(response.content)
 - `npm start` - Run the production server
 - `npm run lint` - Run linting
 - `npm test` - Run tests
+
+## Recent Updates
+
+- Added Open Cloud API integration
+- Enhanced physics system tools
+- Added UI component templates
+- Improved error handling and logging
+- Added caching for better performance
+- Updated to latest Roblox API endpoints
 
 ## Contributing
 
