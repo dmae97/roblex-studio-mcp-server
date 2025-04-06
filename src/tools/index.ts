@@ -11,6 +11,7 @@ import { metaverseIntegration } from './metaverseIntegration.js';
 import { educationalTools } from './educationalTools.js';
 import { localizationManager } from './localizationManager.js';
 import { aiTester } from './aiTester.js';
+import { openCloudConnector } from './opencloud/openCloudConnector.js';
 import { logger } from '../utils/logger.js';
 
 /**
@@ -30,6 +31,7 @@ export const roblexTools = {
     datastoreManager.register(server);
     uiBuilder.register(server);
     physicsSystem.register(server);
+    openCloudConnector.register(server);
     
     // Register additional tools
     socialFeatures.register(server);
