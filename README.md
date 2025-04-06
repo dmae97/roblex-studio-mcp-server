@@ -11,11 +11,13 @@ This MCP server provides resources, tools, and prompts specifically designed for
 - **Resources**: Access Roblex Studio documentation and code templates
 - **Tools**: Generate and validate Roblex code, find assets, and more
 - **Prompts**: Use specialized prompts for script generation and bug finding
+- **API Integration**: Connect directly to the Roblex Studio API
 
 ## Prerequisites
 
 - Node.js >= 18.x
 - npm or yarn
+- Roblex Studio API key (for API integration features)
 
 ## Installation
 
@@ -35,7 +37,12 @@ npm install
 cp .env.example .env
 ```
 
-4. Build the project
+4. Update the `.env` file with your Roblex Studio API key
+```
+ROBLEX_API_KEY=your_api_key_here
+```
+
+5. Build the project
 ```bash
 npm run build
 ```
@@ -104,6 +111,52 @@ Parameters:
 - `checkBestPractices`: Whether to check for best practices
 - `checkPerformance`: Whether to check for performance issues
 
+### Roblex API Connector
+
+Tools for directly connecting to the Roblex Studio API:
+
+#### Search Assets API
+
+The `roblex-search-assets` tool searches for assets using the official Roblex API.
+
+Parameters:
+- `query`: Search query
+- `assetType`: (Optional) Type of asset to search for
+- `limit`: Maximum number of results (default: 10, max: 100)
+- `offset`: Pagination offset (default: 0)
+
+#### Validate Script API
+
+The `roblex-validate-script` tool validates scripts using the official Roblex API.
+
+Parameters:
+- `scriptContent`: The Lua script content to validate
+- `scriptType`: Type of script
+
+#### Create Script API
+
+The `roblex-create-script` tool creates a script using the official Roblex API.
+
+Parameters:
+- `name`: Name of the script
+- `type`: Type of script
+- `content`: Script content
+- `parentId`: (Optional) ID of the parent object
+
+#### Get Asset API
+
+The `roblex-get-asset` tool gets asset information using the official Roblex API.
+
+Parameters:
+- `assetId`: ID of the asset to get
+
+#### Get User Profile API
+
+The `roblex-get-user-profile` tool gets user profile information using the official Roblex API.
+
+Parameters:
+- `userId`: ID of the user
+
 ## Prompts
 
 ### Script Generator
@@ -137,6 +190,7 @@ Parameters:
 - `src/tools/` - MCP tools implementation
 - `src/resources/` - MCP resources implementation
 - `src/prompts/` - MCP prompts implementation
+- `src/api/` - Roblex API client implementation
 
 ### Scripts
 
