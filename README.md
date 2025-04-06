@@ -12,6 +12,7 @@ This MCP server provides resources, tools, and prompts specifically designed for
 - **Tools**: Generate and validate Roblex code, find assets, and more
 - **Prompts**: Use specialized prompts for script generation and bug finding
 - **API Integration**: Connect directly to the Roblex Studio API
+- **Interactive Systems**: Create dialogue systems and UI interfaces
 
 ## Prerequisites
 
@@ -111,6 +112,27 @@ Parameters:
 - `checkBestPractices`: Whether to check for best practices
 - `checkPerformance`: Whether to check for performance issues
 
+### Interactive Systems
+
+#### Dialogue System Generator
+
+The `create-dialogue-tree` tool generates complete dialogue system code for NPCs.
+
+Parameters:
+- `npcName`: Name of the NPC character
+- `dialogueNodes`: Array of dialogue nodes forming the conversation tree
+- `defaultAnimation`: (Optional) Default animation to play when NPC speaks
+- `includeUI`: Whether to include UI creation code
+- `includeEvents`: Whether to include event handling code
+
+#### Dialogue Kit Integration
+
+The `integrate-dialogue-kit` tool generates code that integrates with the Dialogue Kit system.
+
+Parameters:
+- `dialogueData`: Array of NPCs with their dialogue data
+- `createModuleScript`: Whether to create a module script structure
+
 ### Roblex API Connector
 
 Tools for directly connecting to the Roblex Studio API:
@@ -191,6 +213,7 @@ Parameters:
 - `src/resources/` - MCP resources implementation
 - `src/prompts/` - MCP prompts implementation
 - `src/api/` - Roblex API client implementation
+- `src/tools/interactive/` - Interactive systems and UI tools
 
 ### MCP Integration Examples
 
@@ -208,7 +231,7 @@ async function callRoblexMcp() {
       'Authorization': 'Bearer your-claude-api-key'
     },
     body: JSON.stringify({
-      model: "claude-3-opus-20240229",
+      model: "claude-3.7-sonnet-20250219",
       messages: [
         {
           role: "user",
@@ -281,7 +304,7 @@ mcp = MCP(server_url="http://localhost:3000")
 
 # Send message to Claude with MCP capabilities
 response = client.messages.create(
-    model="claude-3-sonnet-20240229",
+    model="claude-3.7-sonnet-20250219",
     max_tokens=1000,
     system="You are a helpful AI assistant with access to Roblex Studio MCP server.",
     messages=[
