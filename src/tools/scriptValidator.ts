@@ -35,8 +35,8 @@ export const scriptValidator = {
           }
           
           // Check for unbalanced parentheses
-          const openParens = (scriptContent.match(/\\(/g) || []).length;
-          const closeParens = (scriptContent.match(/\\)/g) || []).length;
+          const openParens = (scriptContent.match(/\(/g) || []).length;
+          const closeParens = (scriptContent.match(/\)/g) || []).length;
           if (openParens !== closeParens) {
             issues.push({
               type: 'error',
@@ -59,11 +59,11 @@ export const scriptValidator = {
           // Best practices checks (if enabled)
           if (checkBestPractices) {
             // Check for global variables (not recommended)
-            const lines = scriptContent.split('\\n');
+            const lines = scriptContent.split('\n');
             for (let i = 0; i < lines.length; i++) {
               const line = lines[i];
               // Simple check for assignments without local keyword
-              if (/^\\s*[a-zA-Z_][a-zA-Z0-9_]*\\s*=/.test(line) && !line.includes('local') && !line.includes('.')) {
+              if (/^\s*[a-zA-Z_][a-zA-Z0-9_]*\s*=/.test(line) && !line.includes('local') && !line.includes('.')) {
                 issues.push({
                   type: 'warning',
                   message: 'Avoid using global variables',
@@ -87,7 +87,7 @@ export const scriptValidator = {
           // Performance checks (if enabled)
           if (checkPerformance) {
             // Check for loops that create tables
-            if (scriptContent.match(/for.*do.*\\{/)) {
+            if (scriptContent.match(/for.*do.*\{/)) {
               issues.push({
                 type: 'warning',
                 message: 'Creating tables inside loops may cause performance issues',
@@ -97,7 +97,7 @@ export const scriptValidator = {
             }
             
             // Check for string concatenation in loops (could use table.concat)
-            if (scriptContent.match(/for.*do.*\\.\\./) || scriptContent.match(/while.*do.*\\.\\./)) {
+            if (scriptContent.match(/for.*do.*\.\./) || scriptContent.match(/while.*do.*\.\./)) {
               issues.push({
                 type: 'warning',
                 message: 'String concatenation in loops may cause performance issues, consider using table.concat',
