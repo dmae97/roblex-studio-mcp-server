@@ -1,4 +1,4 @@
-import { BaseModel } from '@modelcontextprotocol/sdk';
+import { BaseModel } from './BaseModel.js';
 import { ModelState } from './types.js';
 import { logger } from '../utils/logger.js';
 import { validateModelData, validateModelUpdates } from './validation.js';
@@ -10,8 +10,8 @@ import { validateModelData, validateModelUpdates } from './validation.js';
 
 // 베이스 Roblox Studio 모델 클래스 - 다른 클래스의 기본 클래스로 사용
 export class RoblexStudioBaseModel extends BaseModel {
-  constructor(name: string, initialState?: Record<string, unknown>) {
-    super(name);
+  constructor(id: string, initialState?: Record<string, unknown>) {
+    super(id);
     
     // 기본 상태 설정
     this.setValue('created', new Date().toISOString());
@@ -58,7 +58,7 @@ export class RoblexStudioBaseModel extends BaseModel {
       super.setValue('modified', new Date().toISOString());
     } else {
       // 검증 실패, 오류 로깅
-      logger.warn(`Invalid value for ${this.name}.${key}`, { errors: validation.errors });
+      logger.warn(`Invalid value for ${this.id}.${key}`, { errors: validation.errors });
       throw new Error(`Invalid value for ${key}: ${JSON.stringify(validation.errors)}`);
     }
   }
@@ -87,7 +87,7 @@ export class RoblexStudioBaseModel extends BaseModel {
       super.setValue('modified', new Date().toISOString());
     } else {
       // 검증 실패, 오류 로깅
-      logger.warn(`Invalid values for ${this.name}`, { errors: validation.errors });
+      logger.warn(`Invalid values for ${this.id}`, { errors: validation.errors });
       throw new Error(`Invalid values: ${JSON.stringify(validation.errors)}`);
     }
   }
@@ -104,11 +104,11 @@ export class RoblexStudioBaseModel extends BaseModel {
 export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
   /**
    * Create a new Roblox Studio script model
-   * @param name Script name
+   * @param id Script ID (usually the name)
    * @param initialState Initial script properties
    */
-  constructor(name: string, initialState: ModelState = {}) {
-    super(name);
+  constructor(id: string, initialState: ModelState = {}) {
+    super(id);
     
     // 기본 스크립트 속성 설정
     this.setValue('type', 'ModuleScript');
@@ -130,11 +130,11 @@ export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
     if (validation.success && validation.data) {
       super.setValues(validation.data);
     } else {
-      logger.warn(`Invalid initial state for script ${name}`, { errors: validation.errors });
+      logger.warn(`Invalid initial state for script ${id}`, { errors: validation.errors });
       throw new Error(`Invalid initial state for script: ${JSON.stringify(validation.errors)}`);
     }
     
-    logger.debug(`Roblox Studio script model created: ${name}`);
+    logger.debug(`Roblox Studio script model created: ${id}`);
   }
   
   /**
@@ -234,11 +234,11 @@ export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
 export class RoblexStudioUIModel extends RoblexStudioBaseModel {
   /**
    * Create a new Roblox Studio UI model
-   * @param name UI element name
+   * @param id UI element ID (usually the name)
    * @param initialState Initial UI properties
    */
-  constructor(name: string, initialState: ModelState = {}) {
-    super(name);
+  constructor(id: string, initialState: ModelState = {}) {
+    super(id);
     
     // 기본 UI 속성 설정
     this.setValue('type', 'Frame');
@@ -248,16 +248,13 @@ export class RoblexStudioUIModel extends RoblexStudioBaseModel {
     
     // 기본 속성과 초기 속성 병합
     const uiState = {
-      className: 'Frame',
-      size: { x: 200, y: 200 },
-      position: { x: 0, y: 0 },
-      anchorPoint: { x: 0, y: 0 },
+      uiType: 'Frame',
       visible: true,
-      enabled: true,
-      zIndex: 1,
-      parent: 'StarterGui',
+      position: { x: 0, y: 0 },
+      size: { x: 100, y: 100 },
+      anchorPoint: { x: 0, y: 0 },
+      parent: 'PlayerGui',
       children: [],
-      properties: {},
       ...initialState
     };
     
@@ -266,11 +263,11 @@ export class RoblexStudioUIModel extends RoblexStudioBaseModel {
     if (validation.success && validation.data) {
       super.setValues(validation.data);
     } else {
-      logger.warn(`Invalid initial state for UI ${name}`, { errors: validation.errors });
+      logger.warn(`Invalid initial state for UI element ${id}`, { errors: validation.errors });
       throw new Error(`Invalid initial state for UI: ${JSON.stringify(validation.errors)}`);
     }
     
-    logger.debug(`Roblox Studio UI model created: ${name}`);
+    logger.debug(`Roblox Studio UI model created: ${id}`);
   }
   
   /**
@@ -424,20 +421,18 @@ export class RoblexStudioUIModel extends RoblexStudioBaseModel {
 export class RoblexStudioServiceModel extends RoblexStudioBaseModel {
   /**
    * Create a new Roblox Studio service model
-   * @param name Service name
+   * @param id Service ID (usually the name)
    * @param initialState Initial service properties
    */
-  constructor(name: string, initialState: ModelState = {}) {
-    super(name);
+  constructor(id: string, initialState: ModelState = {}) {
+    super(id);
     
     // 기본 서비스 속성 설정
-    this.setValue('serviceType', 'Custom');
-    this.setValue('enabled', true);
+    this.setValue('type', 'Service');
     
     // 기본 속성과 초기 속성 병합
     const serviceState = {
-      serviceName: name,
-      children: [],
+      serviceType: 'Custom',
       properties: {},
       ...initialState
     };
@@ -447,11 +442,11 @@ export class RoblexStudioServiceModel extends RoblexStudioBaseModel {
     if (validation.success && validation.data) {
       super.setValues(validation.data);
     } else {
-      logger.warn(`Invalid initial state for service ${name}`, { errors: validation.errors });
+      logger.warn(`Invalid initial state for service ${id}`, { errors: validation.errors });
       throw new Error(`Invalid initial state for service: ${JSON.stringify(validation.errors)}`);
     }
     
-    logger.debug(`Roblox Studio service model created: ${name}`);
+    logger.debug(`Roblox Studio service model created: ${id}`);
   }
   
   /**
@@ -459,7 +454,7 @@ export class RoblexStudioServiceModel extends RoblexStudioBaseModel {
    * @returns Service name
    */
   getServiceName(): string {
-    return this.getValue<string>('serviceName', this.name);
+    return this.getValue<string>('serviceName', this.id);
   }
   
   /**

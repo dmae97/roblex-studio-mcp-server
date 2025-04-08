@@ -57,10 +57,19 @@ cp .env.example .env
 PORT=3000
 LOG_LEVEL=info
 API_KEYS=MCP_API_KEY_developer=your-api-key:developer
+ROBLOX_STUDIO_API_KEY=your-roblox-studio-api-key
 JWT_SECRET=your-jwt-secret
 REQUIRE_AUTH=false
 SESSION_TIMEOUT=3600
 ```
+
+Roblox Studio API 키는 다음 단계로 획득할 수 있습니다:
+- Roblox Developer Hub에 로그인합니다 (https://developer.roblox.com)
+- API 키 관리 섹션으로 이동합니다
+- 새 API 키를 생성하고 '스튜디오 통합'에 권한을 부여합니다
+- 생성된 키를 복사하여 `.env` 파일의 `ROBLOX_STUDIO_API_KEY` 값으로 설정합니다
+
+이 API 키는 MCP 서버와 Roblox Studio 간의 통신을 인증하는 데 필수적입니다. 이 키가 없으면 스튜디오 연결이 실패합니다.
 
 5. 서버를 시작합니다:
 
@@ -818,6 +827,7 @@ export const roblexTools = {
 2. **인증 오류**
    - API 키가 올바른지 확인
    - `.env` 파일에서 `REQUIRE_AUTH` 설정 확인
+   - `ROBLOX_STUDIO_API_KEY`가 올바르게 설정되었는지 확인
    - 로그에서 인증 시도 확인
 
 3. **플러그인 연결 문제**
@@ -839,4 +849,4 @@ export const roblexTools = {
 LOG_LEVEL=debug
 ```
 
-가능한 로그 레벨: `debug`, `info`, `warn`, `error` 
+가능한 로그 레벨: `debug`, `info`, `warn`, `error`

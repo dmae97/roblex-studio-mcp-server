@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { McpServer } from './server/McpServer.js';
+import { SSEServerTransport } from './server/SSEServerTransport.js';
 import dotenv from 'dotenv';
 import http from 'http';
 import { roblexTools } from './tools/index.js';
@@ -29,7 +29,8 @@ const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 // Create MCP Server
 const server = new McpServer({
   name: SERVER_NAME,
-  version: SERVER_VERSION
+  version: SERVER_VERSION,
+  logger // Pass the custom logger
 });
 
 // Register tools, resources, and prompts
@@ -39,7 +40,13 @@ roblexPrompts.register(server);
 
 // Create Express app
 const app = express();
-app.use(cors());
+
+// Configure CORS
+const corsOptions = {
+  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
+  credentials: true
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -50,10 +57,10 @@ const httpServer = http.createServer(app);
 const transports: { [sessionId: string]: SSEServerTransport } = {};
 
 // Storage for active Roblox Studio adapters
-const studioAdapters: { [sessionId: string]: any } = {};
+const studioAdapters: { [sessionId: string]: ReturnType<typeof roblexStudioAdapterFactory> } = {};
 
 // Authentication middleware for protected routes
-const authMiddleware = REQUIRE_AUTH ? auth.apiKeyAuth : (req: any, res: any, next: Function) => next();
+const authMiddleware = REQUIRE_AUTH ? auth.apiKeyAuth : (req: express.Request, res: express.Response, next: express.NextFunction) => next();
 
 // Login endpoint
 app.post('/auth/login', async (req, res) => {
@@ -84,7 +91,6 @@ app.post('/auth/login', async (req, res) => {
   }
   
   // Simple username/password authentication (replace with proper auth in production)
-  // In production, you would verify against a database
   if (username === 'admin' && password === process.env.ADMIN_PASSWORD) {
     const sessionId = auth.generateSessionId('user');
     auth.registerSession(sessionId, username, 'admin', req.ip || 'unknown');
@@ -99,7 +105,7 @@ app.post('/auth/login', async (req, res) => {
     res.cookie('sessionId', sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: Number(process.env.SESSION_TIMEOUT || 3600) * 1000 // Use session timeout from env
     });
     
     return res.status(200).json({ 
@@ -188,7 +194,7 @@ app.post('/messages', authMiddleware, async (req, res) => {
   }
 });
 
-// Studio API endpoint
+// Studio API endpoint - For direct communication from Studio plugin
 app.post('/studio/api', authMiddleware, async (req, res) => {
   const sessionId = req.query.sessionId as string;
   const adapter = studioAdapters[sessionId];
@@ -199,21 +205,25 @@ app.post('/studio/api', authMiddleware, async (req, res) => {
     return;
   }
   
-  // Update session activity
-  auth.updateSessionActivity(sessionId);
-  
   try {
+    // Assuming the plugin sends messages in the format { messageType, data }
     const { messageType, data } = req.body;
+    logger.info(`Received studio message: ${messageType}`, { sessionId, data });
+    
+    // Let the adapter handle the message
     const result = await adapter.handleMessage(messageType, data);
     res.status(200).json(result);
   } catch (error) {
-    logger.error(`Error handling Roblox Studio message: ${error instanceof Error ? error.message : String(error)}`);
+    logger.error(`Error handling Roblox Studio message`, { 
+      error: error instanceof Error ? error.message : String(error),
+      sessionId
+    });
     res.status(500).json({ error: 'Error processing request' });
   }
 });
 
 // Health check endpoint
-app.get('/health', (_, res) => {
+app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     name: SERVER_NAME,
@@ -224,17 +234,18 @@ app.get('/health', (_, res) => {
 });
 
 // Roblox Studio status endpoint
-app.get('/studio/status', authMiddleware, (_, res) => {
-  const activeAdapters = Object.values(studioAdapters).filter((adapter: any) => adapter.isConnected);
+app.get('/studio/status', authMiddleware, (req, res) => {
+  const activeAdapters = Object.values(studioAdapters).filter((adapter) => adapter.isConnected);
   
   res.status(200).json({
     activeConnections: activeAdapters.length,
     globalModelCount: globalContext.getAllModels().length,
-    handlers: Array.from(new Set(
-      Object.values(studioAdapters).flatMap((adapter: any) => 
-        Array.from(adapter.protocol._handlers.keys())
-      )
-    ))
+    // Cannot directly access private _handlers, so we'll omit this for now
+    // handlers: Array.from(new Set(
+    //   Object.values(studioAdapters).flatMap((adapter) => 
+    //     Array.from(adapter.protocol._handlers.keys())
+    //   )
+    // ))
   });
 });
 
@@ -271,7 +282,7 @@ securedRouter.get('/models/:modelId', (req, res) => {
   }
   
   res.status(200).json({
-    name: model.name,
+    id: model.name,
     state: model.state
   });
 });
@@ -294,56 +305,49 @@ httpServer.listen(PORT, () => {
   logger.info(`WebSocket sync endpoint: ws://localhost:${PORT}/sync`);
 });
 
-// 에러 핸들링 개선
+// Graceful shutdown handler
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+// Uncaught exception handler
 process.on('uncaughtException', (error) => {
-  logger.error(`Uncaught Exception: ${error.message}`, { 
+  logger.error('Uncaught exception', {
     name: error.name,
     message: error.message,
     stack: error.stack,
-    errorObject: String(error)
+    error: error.toString()
   });
-  // 심각한 에러 발생 시 정상 종료 절차 실행
-  gracefulShutdown();
+  gracefulShutdown(); // Attempt graceful shutdown on uncaught exception
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
-});
-
-// 종료 신호 처리
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received.');
-  gracefulShutdown();
-});
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT signal received.');
-  gracefulShutdown();
-});
-
-// 정상 종료 함수
 function gracefulShutdown() {
   logger.info('Graceful shutdown initiated...');
   
-  // 활성 연결 종료
+  // Close active connections
   Object.keys(studioAdapters).forEach(sessionId => {
-    const session = studioAdapters[sessionId];
-    if (session) {
+    const adapter = studioAdapters[sessionId];
+    if (adapter) {
       try {
-        session.disconnect();
-        logger.info(`Closed session: ${sessionId}`);
+        adapter.disconnect();
+        logger.info(`Disconnected Roblox Studio adapter: ${sessionId}`);
       } catch (error) {
-        logger.error(`Error closing session ${sessionId}: ${error instanceof Error ? error.message : String(error)}`);
+        logger.error(`Error disconnecting adapter ${sessionId}`, { 
+          error: error instanceof Error ? error.message : String(error)
+        });
       }
     }
   });
   
-  // 서버 종료
-  setTimeout(() => {
-    logger.info('Shutting down server...');
-    
-    // 다른 정리 작업 수행
-    
+  // Close HTTP server
+  httpServer.close(() => {
+    logger.info('HTTP server closed');
+    // Additional cleanup if needed
     process.exit(0);
-  }, 500);
+  });
+  
+  // Force exit after timeout
+  setTimeout(() => {
+    logger.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, 10000);
 }

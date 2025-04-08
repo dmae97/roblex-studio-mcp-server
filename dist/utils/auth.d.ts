@@ -1,0 +1,20 @@
+export declare function generateToken(length?: number): string;
+export declare function generateSessionId(prefix?: string): string;
+export declare function createToken(payload: Record<string, any>, expiresIn?: number): string;
+export declare function verifyToken(token: string): Record<string, any> | null;
+export declare function verifyApiKey(apiKey: string): {
+    valid: boolean;
+    name?: string;
+    role?: string;
+};
+export declare function createHash(data: string): string;
+export declare function registerSession(sessionId: string, userId: string, role: string, ipAddress?: string): void;
+export declare function updateSessionActivity(sessionId: string): void;
+export declare function isSessionValid(sessionId: string): boolean;
+export declare function getSessionInfo(sessionId: string): any;
+export declare function revokeSession(sessionId: string): void;
+export declare function cleanupSessions(maxAgeMs?: number): void;
+export declare function init(): void;
+export declare function apiKeyAuth(req: any, res: any, next: Function): void;
+export declare function tokenAuth(req: any, res: any, next: Function): void;
+export declare function sessionAuth(req: any, res: any, next: Function): void;
