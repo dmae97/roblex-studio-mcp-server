@@ -1,4 +1,8 @@
-export const socialFeaturesGenerator = {
+"use strict";
+// import { Tool } from '@modelcontextprotocol/sdk'; // Remove invalid import
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.socialFeaturesGenerator = void 0;
+exports.socialFeaturesGenerator = {
     name: 'create-social-features',
     description: 'Roblox 게임을 위한 소셜 기능 생성',
     parameters: {
@@ -339,7 +343,8 @@ return LeaderboardSystem`
         }
         catch (error) {
             console.error('Error in social features generator:', error);
-            throw new Error(`Social features generation failed: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`Social features generation failed: ${errorMessage}`);
         }
     }
 };

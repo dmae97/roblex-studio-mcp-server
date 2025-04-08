@@ -1,4 +1,4 @@
-/// <reference types="node" resolution-mode="require"/>
+/// <reference types="node" />
 import { EventEmitter } from 'events';
 /**
  * Base model class for MCP (Model-Context-Protocol) implementation

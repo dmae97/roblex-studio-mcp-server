@@ -1,7 +1,10 @@
-import { WebSocketServer } from 'ws';
-import { logger } from './logger.js';
-import { generateSessionId } from './auth.js';
-import { globalContext } from '../models/index.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.getConnectionGroups = exports.leaveGroup = exports.joinGroup = exports.broadcastToGroup = exports.broadcastToAll = exports.sendToConnection = exports.registerHandler = exports.init = void 0;
+const ws_1 = require("ws");
+const logger_js_1 = require("./logger.js");
+const auth_js_1 = require("./auth.js");
+const index_js_1 = require("../models/index.js");
 /**
  * WebSocket synchronization system for real-time data updates
  */
@@ -18,22 +21,22 @@ const messageHandlers = new Map();
  * @param server HTTP server instance
  * @param path WebSocket endpoint path
  */
-export function init(server, path = '/sync') {
-    const wss = new WebSocketServer({
+function init(server, path = '/sync') {
+    const wss = new ws_1.WebSocketServer({
         server,
         path
     });
-    logger.info(`WebSocket synchronization system initialized at ${path}`);
+    logger_js_1.logger.info(`WebSocket synchronization system initialized at ${path}`);
     wss.on('connection', (ws, req) => {
         // Generate connection ID and get session ID from query
-        const connectionId = generateSessionId('ws');
+        const connectionId = (0, auth_js_1.generateSessionId)('ws');
         const url = new URL(req.url || '', `http://${req.headers.host}`);
         const sessionId = url.searchParams.get('sessionId') || '';
         const groups = url.searchParams.get('groups') || '';
         // Register connection
         activeConnections.set(connectionId, ws);
         lastActivity.set(connectionId, Date.now());
-        logger.info(`WebSocket connection established: ${connectionId} (Session: ${sessionId})`);
+        logger_js_1.logger.info(`WebSocket connection established: ${connectionId} (Session: ${sessionId})`);
         // Join connection groups if specified
         if (groups) {
             groups.split(',').forEach(group => {
@@ -53,7 +56,7 @@ export function init(server, path = '/sync') {
                 handleMessage(parsedMessage, connectionId, ws);
             }
             catch (error) {
-                logger.error(`Error parsing WebSocket message: ${error instanceof Error ? error.message : String(error)}`);
+                logger_js_1.logger.error(`Error parsing WebSocket message: ${error instanceof Error ? error.message : String(error)}`);
                 send(ws, 'error', {
                     error: 'Invalid message format',
                     timestamp: new Date().toISOString()
@@ -62,7 +65,7 @@ export function init(server, path = '/sync') {
         });
         // Set up close handler
         ws.on('close', () => {
-            logger.info(`WebSocket connection closed: ${connectionId}`);
+            logger_js_1.logger.info(`WebSocket connection closed: ${connectionId}`);
             // Remove from all groups
             getConnectionGroups(connectionId).forEach(group => {
                 leaveGroup(connectionId, group);
@@ -73,7 +76,7 @@ export function init(server, path = '/sync') {
         });
         // Set up error handler
         ws.on('error', (error) => {
-            logger.error(`WebSocket error for ${connectionId}: ${error.message}`);
+            logger_js_1.logger.error(`WebSocket error for ${connectionId}: ${error.message}`);
         });
         // Set up pong handler for connection keepalive
         ws.on('pong', () => {
@@ -92,18 +95,20 @@ export function init(server, path = '/sync') {
     registerHandler('sync:update', handleUpdate);
     registerHandler('ping', handlePing);
 }
+exports.init = init;
 /**
  * Register a message handler
  * @param messageType Type of message to handle
  * @param handler Handler function
  */
-export function registerHandler(messageType, handler) {
+function registerHandler(messageType, handler) {
     if (!messageHandlers.has(messageType)) {
         messageHandlers.set(messageType, []);
     }
     messageHandlers.get(messageType).push(handler);
-    logger.debug(`Registered handler for message type: ${messageType}`);
+    logger_js_1.logger.debug(`Registered handler for message type: ${messageType}`);
 }
+exports.registerHandler = registerHandler;
 /**
  * Handle incoming WebSocket message
  * @param message Parsed message
@@ -121,7 +126,7 @@ async function handleMessage(message, connectionId, ws) {
     // Get handlers for this message type
     const handlers = messageHandlers.get(type) || [];
     if (handlers.length === 0) {
-        logger.warn(`No handlers for message type: ${type}`);
+        logger_js_1.logger.warn(`No handlers for message type: ${type}`);
         send(ws, 'error', { error: `Unknown message type: ${type}` });
         return;
     }
@@ -137,7 +142,7 @@ async function handleMessage(message, connectionId, ws) {
         }
     }
     catch (error) {
-        logger.error(`Error handling message ${type}: ${error instanceof Error ? error.message : String(error)}`);
+        logger_js_1.logger.error(`Error handling message ${type}: ${error instanceof Error ? error.message : String(error)}`);
         if (requestId) {
             send(ws, 'error', {
                 requestId,
@@ -186,7 +191,7 @@ function broadcast(connections, type, data) {
  * @param data Message data
  * @returns true if sent, false if connection not found or closed
  */
-export function sendToConnection(connectionId, type, data) {
+function sendToConnection(connectionId, type, data) {
     const ws = activeConnections.get(connectionId);
     if (ws && ws.readyState === ws.OPEN) {
         send(ws, type, data);
@@ -194,14 +199,16 @@ export function sendToConnection(connectionId, type, data) {
     }
     return false;
 }
+exports.sendToConnection = sendToConnection;
 /**
  * Broadcast a message to all connections
  * @param type Message type
  * @param data Message data
  */
-export function broadcastToAll(type, data) {
+function broadcastToAll(type, data) {
     broadcast(Array.from(activeConnections.values()), type, data);
 }
+exports.broadcastToAll = broadcastToAll;
 /**
  * Broadcast a message to a specific group
  * @param groupName Group name
@@ -209,7 +216,7 @@ export function broadcastToAll(type, data) {
  * @param data Message data
  * @returns Number of connections the message was sent to
  */
-export function broadcastToGroup(groupName, type, data) {
+function broadcastToGroup(groupName, type, data) {
     const group = connectionGroups.get(groupName);
     if (!group || group.size === 0) {
         return 0;
@@ -224,24 +231,26 @@ export function broadcastToGroup(groupName, type, data) {
     broadcast(connections, type, data);
     return connections.length;
 }
+exports.broadcastToGroup = broadcastToGroup;
 /**
  * Add a connection to a group
  * @param connectionId Connection ID
  * @param groupName Group name
  */
-export function joinGroup(connectionId, groupName) {
+function joinGroup(connectionId, groupName) {
     if (!connectionGroups.has(groupName)) {
         connectionGroups.set(groupName, new Set());
     }
     connectionGroups.get(groupName).add(connectionId);
-    logger.debug(`Connection ${connectionId} joined group ${groupName}`);
+    logger_js_1.logger.debug(`Connection ${connectionId} joined group ${groupName}`);
 }
+exports.joinGroup = joinGroup;
 /**
  * Remove a connection from a group
  * @param connectionId Connection ID
  * @param groupName Group name
  */
-export function leaveGroup(connectionId, groupName) {
+function leaveGroup(connectionId, groupName) {
     const group = connectionGroups.get(groupName);
     if (group) {
         group.delete(connectionId);
@@ -249,15 +258,16 @@ export function leaveGroup(connectionId, groupName) {
         if (group.size === 0) {
             connectionGroups.delete(groupName);
         }
-        logger.debug(`Connection ${connectionId} left group ${groupName}`);
+        logger_js_1.logger.debug(`Connection ${connectionId} left group ${groupName}`);
     }
 }
+exports.leaveGroup = leaveGroup;
 /**
  * Get all groups a connection belongs to
  * @param connectionId Connection ID
  * @returns Array of group names
  */
-export function getConnectionGroups(connectionId) {
+function getConnectionGroups(connectionId) {
     const groups = [];
     connectionGroups.forEach((connections, groupName) => {
         if (connections.has(connectionId)) {
@@ -266,6 +276,7 @@ export function getConnectionGroups(connectionId) {
     });
     return groups;
 }
+exports.getConnectionGroups = getConnectionGroups;
 /**
  * Send ping to all connections and cleanup stale ones
  */
@@ -285,7 +296,7 @@ function cleanupStaleConnections() {
     activeConnections.forEach((ws, connectionId) => {
         const lastActivityTime = lastActivity.get(connectionId) || 0;
         if (now - lastActivityTime > staleThreshold) {
-            logger.info(`Closing stale connection: ${connectionId}`);
+            logger_js_1.logger.info(`Closing stale connection: ${connectionId}`);
             ws.terminate();
             // Remove from all groups
             getConnectionGroups(connectionId).forEach(group => {
@@ -309,7 +320,7 @@ async function handleSubscribe(data, connectionId) {
         // Subscribe to updates for a specific model
         joinGroup(connectionId, `model:${modelId}`);
         // Return initial state
-        const model = globalContext.getModel(modelId);
+        const model = index_js_1.globalContext.getModel(modelId);
         if (!model) {
             throw new Error(`Model ${modelId} not found`);
         }
@@ -322,7 +333,7 @@ async function handleSubscribe(data, connectionId) {
         // Subscribe to updates for all models of a specific type
         joinGroup(connectionId, `type:${modelType}`);
         // Return initial states of all models of this type
-        const models = globalContext.getAllModels().filter(model => model.getValue('type') === modelType);
+        const models = index_js_1.globalContext.getAllModels().filter(model => model.getValue('type') === modelType);
         return {
             modelType,
             models: models.map(model => ({
@@ -362,7 +373,7 @@ async function handleGetState(data, connectionId) {
     const { modelId } = data;
     if (modelId) {
         // Get state for a specific model
-        const model = globalContext.getModel(modelId);
+        const model = index_js_1.globalContext.getModel(modelId);
         if (!model) {
             throw new Error(`Model ${modelId} not found`);
         }
@@ -373,7 +384,7 @@ async function handleGetState(data, connectionId) {
     }
     else {
         // Get all models if no modelId specified
-        const models = globalContext.getAllModels();
+        const models = index_js_1.globalContext.getAllModels();
         return {
             models: models.map(model => ({
                 modelId: model.name,
@@ -390,7 +401,7 @@ async function handleUpdate(data, connectionId) {
     if (!modelId || !values) {
         throw new Error('modelId and values are required');
     }
-    const model = globalContext.getModel(modelId);
+    const model = index_js_1.globalContext.getModel(modelId);
     if (!model) {
         throw new Error(`Model ${modelId} not found`);
     }

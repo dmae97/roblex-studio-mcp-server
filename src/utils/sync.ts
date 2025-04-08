@@ -61,7 +61,7 @@ export function init(server: http.Server, path: string = '/sync'): void {
     });
     
     // Set up message handler
-    ws.on('message', (message: WebSocket.Data) => {
+    ws.on('message', (message: any) => {
       try {
         const parsedMessage = JSON.parse(message.toString());
         handleMessage(parsedMessage, connectionId, ws);

@@ -1,11 +1,14 @@
-import { RoblexContext } from './RoblexContext.js';
-import { RoblexModel } from './RoblexModel.js';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RoblexProtocol = void 0;
+const RoblexContext_js_1 = require("./RoblexContext.js");
+const RoblexModel_js_1 = require("./RoblexModel.js");
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Protocol class for Roblex components
  * Implements the Protocol part of Model-Context-Protocol pattern
  */
-export class RoblexProtocol {
+class RoblexProtocol {
     _context;
     _name;
     _handlers;
@@ -16,9 +19,9 @@ export class RoblexProtocol {
      */
     constructor(name, context) {
         this._name = name;
-        this._context = context || new RoblexContext(`${name}Context`);
+        this._context = context || new RoblexContext_js_1.RoblexContext(`${name}Context`);
         this._handlers = new Map();
-        logger.debug(`Protocol created: ${name}`);
+        logger_js_1.logger.debug(`Protocol created: ${name}`);
     }
     /**
      * Get the protocol name
@@ -38,7 +41,7 @@ export class RoblexProtocol {
      */
     setContext(context) {
         this._context = context;
-        logger.debug(`Context set for protocol ${this._name}: ${context.name}`);
+        logger_js_1.logger.debug(`Context set for protocol ${this._name}: ${context.name}`);
     }
     /**
      * Register a message handler
@@ -50,7 +53,7 @@ export class RoblexProtocol {
             this._handlers.set(messageType, []);
         }
         this._handlers.get(messageType).push(handler);
-        logger.debug(`Handler registered for message type ${messageType} in protocol ${this._name}`);
+        logger_js_1.logger.debug(`Handler registered for message type ${messageType} in protocol ${this._name}`);
     }
     /**
      * Unregister a message handler
@@ -68,7 +71,7 @@ export class RoblexProtocol {
         this._handlers.set(messageType, filteredHandlers);
         const removed = initialLength > filteredHandlers.length;
         if (removed) {
-            logger.debug(`Handler unregistered for message type ${messageType} in protocol ${this._name}`);
+            logger_js_1.logger.debug(`Handler unregistered for message type ${messageType} in protocol ${this._name}`);
         }
         return removed;
     }
@@ -81,10 +84,10 @@ export class RoblexProtocol {
     async processMessage(messageType, data) {
         const handlers = this._handlers.get(messageType) || [];
         if (handlers.length === 0) {
-            logger.warn(`No handlers found for message type ${messageType} in protocol ${this._name}`);
+            logger_js_1.logger.warn(`No handlers found for message type ${messageType} in protocol ${this._name}`);
             return [];
         }
-        logger.debug(`Processing message type ${messageType} with ${handlers.length} handlers`);
+        logger_js_1.logger.debug(`Processing message type ${messageType} with ${handlers.length} handlers`);
         const results = [];
         for (const handler of handlers) {
             try {
@@ -92,7 +95,7 @@ export class RoblexProtocol {
                 results.push(result);
             }
             catch (error) {
-                logger.error(`Error in handler for message type ${messageType}: ${error instanceof Error ? error.message : String(error)}`);
+                logger_js_1.logger.error(`Error in handler for message type ${messageType}: ${error instanceof Error ? error.message : String(error)}`);
                 results.push({ error: true, message: error instanceof Error ? error.message : String(error) });
             }
         }
@@ -105,7 +108,7 @@ export class RoblexProtocol {
      * @returns The created model
      */
     createModel(modelName, initialState = {}) {
-        const model = new RoblexModel(modelName, initialState);
+        const model = new RoblexModel_js_1.RoblexModel(modelName, initialState);
         this._context.registerModel(model);
         return model;
     }
@@ -118,11 +121,12 @@ export class RoblexProtocol {
     updateModel(modelName, values) {
         const model = this._context.getModel(modelName);
         if (!model) {
-            logger.warn(`Can't update model ${modelName}: not found in context ${this._context.name}`);
+            logger_js_1.logger.warn(`Can't update model ${modelName}: not found in context ${this._context.name}`);
             return false;
         }
         model.setValues(values);
         return true;
     }
 }
+exports.RoblexProtocol = RoblexProtocol;
 //# sourceMappingURL=RoblexProtocol.js.map

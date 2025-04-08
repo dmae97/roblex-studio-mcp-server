@@ -1,4 +1,4 @@
-import { McpServer } from '../server/McpServer.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { logger } from '../utils/logger.js';
 
@@ -137,7 +137,7 @@ export const scriptValidator = {
             ]
           };
         } catch (error) {
-          logger.error('Error validating script:', error);
+          logger.error(`Error validating script: ${error instanceof Error ? error.message : String(error)}`);
           return {
             content: [
               { 

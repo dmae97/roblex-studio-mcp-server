@@ -1,4 +1,4 @@
-/// <reference types="node" resolution-mode="require"/>
+/// <reference types="node" />
 import { EventEmitter } from 'events';
 /**
  * Type for a tool callback function

@@ -1,92 +1,63 @@
-import { z } from 'zod';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.assetFinder = void 0;
+const zod_1 = require("zod");
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Tool for finding Roblex assets based on user criteria
  */
-export const assetFinder = {
+exports.assetFinder = {
     register: (server) => {
-        server.tool('find-roblex-assets', {
-            // Input schema using Zod
-            assetType: z.enum(['Model', 'Decal', 'Mesh', 'Animation', 'Sound', 'Texture']),
-            keywords: z.string().describe('Search keywords or tags'),
-            maxResults: z.number().int().positive().default(10).describe('Maximum number of results to return'),
-            includeDetails: z.boolean().default(true).describe('Whether to include detailed asset information')
-        }, async ({ assetType, keywords, maxResults, includeDetails }) => {
-            logger.info(`Searching for ${assetType} assets with keywords: ${keywords}`);
+        server.tool('find-assets', {
+            query: zod_1.z.string().describe('Search query for assets'),
+            assetType: zod_1.z.enum(['image', 'model', 'audio', 'script', 'all']).optional().describe('Type of asset to search for'),
+            limit: zod_1.z.number().int().positive().optional().default(10).describe('Maximum number of results')
+        }, async (params) => {
+            // Temporary use of 'any' for params
+            const { query, assetType, limit } = params;
+            logger_js_1.logger.info('Finding assets', { query, assetType, limit });
             try {
-                // In a real implementation, this would query a database or API
-                // Here we'll simulate some results
+                // Simulate finding assets (replace with actual API call or logic)
                 const mockAssets = [
-                    {
-                        id: '12345678',
-                        name: 'Sample Asset 1',
-                        type: assetType,
-                        creator: 'RoblexUser123',
-                        created: '2024-04-01T12:00:00Z',
-                        updated: '2024-04-02T14:30:00Z',
-                        description: `A great ${assetType.toLowerCase()} that matches "${keywords}"`,
-                        tags: keywords.split(',').map(k => k.trim()),
-                        downloadUrl: 'https://example.com/asset/12345678',
-                        thumbnailUrl: 'https://example.com/thumbnail/12345678.png',
-                    },
-                    {
-                        id: '87654321',
-                        name: 'Sample Asset 2',
-                        type: assetType,
-                        creator: 'RoblexStudio',
-                        created: '2024-03-15T09:45:00Z',
-                        updated: '2024-03-25T11:20:00Z',
-                        description: `Another ${assetType.toLowerCase()} related to "${keywords}"`,
-                        tags: ['sample', 'demo', ...keywords.split(',').map(k => k.trim())],
-                        downloadUrl: 'https://example.com/asset/87654321',
-                        thumbnailUrl: 'https://example.com/thumbnail/87654321.png',
-                    }
+                    { id: '123', name: 'Cool Sword', type: 'model', url: 'roblox.com/library/123' },
+                    { id: '456', name: 'Background Music', type: 'audio', url: 'roblox.com/library/456' },
+                    { id: '789', name: 'Player Script', type: 'script', url: 'roblox.com/library/789' }
                 ];
-                // Limit results based on maxResults parameter
-                const limitedResults = mockAssets.slice(0, maxResults);
-                // Format results based on includeDetails parameter
-                const formattedResults = limitedResults.map(asset => {
-                    if (includeDetails) {
-                        return asset;
-                    }
-                    else {
-                        // Simplified version with just the essential information
-                        return {
-                            id: asset.id,
-                            name: asset.name,
-                            type: asset.type,
-                            creator: asset.creator,
-                            thumbnailUrl: asset.thumbnailUrl
-                        };
-                    }
-                });
+                const filteredAssets = mockAssets
+                    .filter(asset => asset.name.toLowerCase().includes(query.toLowerCase()))
+                    .filter(asset => !assetType || assetType === 'all' || asset.type === assetType)
+                    .slice(0, limit);
+                if (filteredAssets.length === 0) {
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `No assets found matching query: "${query}"${assetType ? ` of type ${assetType}` : ''}`
+                            }]
+                    };
+                }
                 return {
                     content: [
                         {
                             type: 'text',
-                            text: JSON.stringify({
-                                assets: formattedResults,
-                                totalFound: mockAssets.length,
-                                returned: formattedResults.length
-                            }, null, 2)
+                            text: `Found ${filteredAssets.length} assets:\n${filteredAssets.map(a => `- ${a.name} (${a.type}): ${a.url}`).join('\n')}`
                         }
                     ]
                 };
             }
             catch (error) {
-                logger.error('Error finding assets:', error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                // Ensure the second argument to logger.error is an object, standardizing on { err: error }
+                logger_js_1.logger.error('Error finding assets', { err: error }); // Pass the original error object
                 return {
-                    content: [
-                        {
+                    content: [{
                             type: 'text',
-                            text: `Error finding assets: ${error instanceof Error ? error.message : String(error)}`
-                        }
-                    ],
+                            text: `Error finding assets: ${errorMessage}`
+                        }],
                     isError: true
                 };
             }
         });
-        logger.debug('Asset finder tool registered');
+        logger_js_1.logger.debug('Asset finder tool registered');
     }
 };
 //# sourceMappingURL=assetFinder.js.map

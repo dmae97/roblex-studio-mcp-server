@@ -1,12 +1,17 @@
+"use strict";
 /**
  * Example of using WebSocket synchronization for real-time model updates
  */
-import WebSocket from 'ws';
-import { v4 as uuidv4 } from 'uuid';
-import readline from 'readline';
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const ws_1 = __importDefault(require("ws"));
+const uuid_1 = require("uuid");
+const readline_1 = __importDefault(require("readline"));
 // Configuration
 const WS_URL = 'ws://localhost:3000/sync';
-const SESSION_ID = uuidv4();
+const SESSION_ID = (0, uuid_1.v4)();
 const GROUP = 'example-group';
 // Models that we'll track
 const MODELS = {
@@ -29,9 +34,9 @@ const MODELS = {
 const connectionUrl = `${WS_URL}?sessionId=${SESSION_ID}&groups=${GROUP}`;
 // Connect to the WebSocket server
 console.log(`Connecting to ${connectionUrl}...`);
-const ws = new WebSocket(connectionUrl);
+const ws = new ws_1.default(connectionUrl);
 // Create readline interface for user input
-const rl = readline.createInterface({
+const rl = readline_1.default.createInterface({
     input: process.stdin,
     output: process.stdout
 });

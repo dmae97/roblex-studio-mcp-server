@@ -28,6 +28,9 @@ export declare class ConflictError extends McpError {
 export declare class RateLimitError extends McpError {
     constructor(message: string, details?: any);
 }
+export declare class DatastoreError extends McpError {
+    constructor(message?: string, details?: any);
+}
 /**
  * Format an error response for API endpoints
  */

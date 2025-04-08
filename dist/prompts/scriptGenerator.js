@@ -1,19 +1,44 @@
-import { z } from 'zod';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.scriptGenerator = void 0;
+const zod_1 = require("zod");
+const logger_js_1 = require("../utils/logger.js");
+// Define Zod schema separately for clarity and validation
+const scriptGeneratorSchema = zod_1.z.object({
+    scriptType: zod_1.z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script to generate'),
+    functionality: zod_1.z.string().describe('Description of what the script should do'),
+    includeComments: zod_1.z.boolean().default(true).describe('Whether to include comments in the code'),
+    complexity: zod_1.z.enum(['Beginner', 'Intermediate', 'Advanced']).describe('Complexity level of the code'),
+    targetAudience: zod_1.z.enum(['Child', 'Teen', 'Adult']).default('Teen').describe('Target audience for the script')
+});
 /**
  * Prompt for generating Roblex scripts with AI assistance
  */
-export const scriptGenerator = {
+exports.scriptGenerator = {
     register: (server) => {
-        server.prompt('generate-script', {
-            // Input schema using Zod
-            scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script to generate'),
-            functionality: z.string().describe('Description of what the script should do'),
-            includeComments: z.boolean().default(true).describe('Whether to include comments in the code'),
-            complexity: z.enum(['Beginner', 'Intermediate', 'Advanced']).describe('Complexity level of the code'),
-            targetAudience: z.enum(['Child', 'Teen', 'Adult']).default('Teen').describe('Target audience for the script')
-        }, ({ scriptType, functionality, includeComments, complexity, targetAudience }) => {
-            logger.info(`Generating ${scriptType} prompt for functionality: ${functionality}`);
+        server.prompt('generate-script', // Prompt name
+        'Generate a Roblex script based on requirements', // Prompt description
+        // Omit definition object, validate manually in callback
+        (extra) => {
+            let params;
+            try {
+                // Manually parse and validate parameters
+                const rawParams = extra?.parameters ?? extra;
+                params = scriptGeneratorSchema.parse(rawParams);
+            }
+            catch (error) {
+                logger_js_1.logger.error('Invalid parameters received for generate-script prompt', { error, received: extra });
+                return {
+                    messages: [
+                        {
+                            role: 'assistant',
+                            content: { type: 'text', text: 'Error: Invalid parameters received for script generator.' }
+                        }
+                    ]
+                };
+            }
+            const { scriptType, functionality, includeComments, complexity, targetAudience } = params; // Destructure from validated params
+            logger_js_1.logger.info(`Generating ${scriptType} prompt for functionality: ${functionality}`);
             // Build system message based on parameters
             let systemMessage = `You are an expert Roblex Studio developer specializing in creating ${scriptType} scripts. `;
             // Add complexity guidance
@@ -65,26 +90,33 @@ export const scriptGenerator = {
                 systemMessage += 'This script will be a reusable module, so create a well-structured module that returns functions or objects. ';
                 systemMessage += 'Focus on encapsulation, clean interfaces, and reusability. Remember to return the module table at the end. ';
             }
+            // Combine system message and user prompt into a single user message
+            const userPromptText = `System Instructions:
+${systemMessage}
+
+User Request:
+Please create a ${scriptType} for Roblex Studio that implements the following functionality: ${functionality}`;
             return {
                 messages: [
+                    // Remove the message with role: 'system'
+                    // {
+                    //   role: 'system',
+                    //   content: {
+                    //     type: 'text',
+                    //     text: systemMessage
+                    //   }
+                    // },
                     {
-                        role: 'system',
+                        role: 'user', // Only return user/assistant messages
                         content: {
                             type: 'text',
-                            text: systemMessage
-                        }
-                    },
-                    {
-                        role: 'user',
-                        content: {
-                            type: 'text',
-                            text: `Please create a ${scriptType} for Roblex Studio that implements the following functionality: ${functionality}`
+                            text: userPromptText // Combine instructions and request here
                         }
                     }
                 ]
             };
         });
-        logger.debug('Script generator prompt registered');
+        logger_js_1.logger.debug('Script generator prompt registered');
     }
 };
 //# sourceMappingURL=scriptGenerator.js.map

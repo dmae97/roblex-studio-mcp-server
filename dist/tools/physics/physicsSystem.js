@@ -1,26 +1,29 @@
-import { z } from 'zod';
-import { logger } from '../../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.physicsSystem = void 0;
+const zod_1 = require("zod");
+const logger_js_1 = require("../../utils/logger.js");
 /**
  * Tool for creating and configuring physics systems in Roblex
  */
-export const physicsSystem = {
+exports.physicsSystem = {
     register: (server) => {
         // Register physics setup tool
         server.tool('create-physics-system', {
             // Input schema using Zod
-            objectName: z.string().describe('Name of the physical object'),
-            objectType: z.enum(['Part', 'MeshPart', 'Union', 'WedgePart', 'CornerWedgePart', 'TrussPart']).describe('Type of physical object'),
-            size: z.object({
-                x: z.number().default(4).describe('X dimension'),
-                y: z.number().default(1).describe('Y dimension'),
-                z: z.number().default(4).describe('Z dimension')
+            objectName: zod_1.z.string().describe('Name of the physical object'),
+            objectType: zod_1.z.enum(['Part', 'MeshPart', 'Union', 'WedgePart', 'CornerWedgePart', 'TrussPart']).describe('Type of physical object'),
+            size: zod_1.z.object({
+                x: zod_1.z.number().default(4).describe('X dimension'),
+                y: zod_1.z.number().default(1).describe('Y dimension'),
+                z: zod_1.z.number().default(4).describe('Z dimension')
             }).describe('Size of the physical object'),
-            position: z.object({
-                x: z.number().default(0).describe('X position'),
-                y: z.number().default(10).describe('Y position'),
-                z: z.number().default(0).describe('Z position')
+            position: zod_1.z.object({
+                x: zod_1.z.number().default(0).describe('X position'),
+                y: zod_1.z.number().default(10).describe('Y position'),
+                z: zod_1.z.number().default(0).describe('Z position')
             }).describe('Position of the physical object'),
-            material: z.enum([
+            material: zod_1.z.enum([
                 'Plastic', 'Wood', 'Slate', 'Concrete', 'CorrodedMetal',
                 'DiamondPlate', 'Foil', 'Grass', 'Ice', 'Marble',
                 'Granite', 'Brick', 'Pebble', 'Sand', 'Fabric',
@@ -29,33 +32,33 @@ export const physicsSystem = {
                 'Snow', 'Sandstone', 'Mud', 'Basalt', 'CrackedLava',
                 'Neon', 'Asphalt'
             ]).default('Plastic').describe('Material of the physical object'),
-            physicsProperties: z.object({
-                density: z.number().min(0.01).max(100).default(1).describe('Density of the object (0.01 to 100)'),
-                friction: z.number().min(0).max(1).default(0.3).describe('Friction coefficient (0 to 1)'),
-                elasticity: z.number().min(0).max(1).default(0.5).describe('Elasticity/restitution (0 to 1)'),
-                frictionWeight: z.number().min(0).max(100).default(1).describe('Friction weight (0 to 100)'),
-                elasticityWeight: z.number().min(0).max(100).default(1).describe('Elasticity weight (0 to 100)')
+            physicsProperties: zod_1.z.object({
+                density: zod_1.z.number().min(0.01).max(100).default(1).describe('Density of the object (0.01 to 100)'),
+                friction: zod_1.z.number().min(0).max(1).default(0.3).describe('Friction coefficient (0 to 1)'),
+                elasticity: zod_1.z.number().min(0).max(1).default(0.5).describe('Elasticity/restitution (0 to 1)'),
+                frictionWeight: zod_1.z.number().min(0).max(100).default(1).describe('Friction weight (0 to 100)'),
+                elasticityWeight: zod_1.z.number().min(0).max(100).default(1).describe('Elasticity weight (0 to 100)')
             }).describe('Physics properties for the object'),
-            collisionGroups: z.array(z.string()).optional().describe('Optional collision groups for this object'),
-            moverProperties: z.object({
-                isMover: z.boolean().default(false).describe('Whether this object acts as a mover/platform'),
-                moveDistance: z.number().default(10).describe('Distance to move'),
-                moveSpeed: z.number().default(5).describe('Speed of movement'),
-                moveDirection: z.enum(['X', 'Y', 'Z']).default('Y').describe('Direction of movement'),
-                moveType: z.enum(['Loop', 'PingPong', 'Once']).default('PingPong').describe('Type of movement pattern')
+            collisionGroups: zod_1.z.array(zod_1.z.string()).optional().describe('Optional collision groups for this object'),
+            moverProperties: zod_1.z.object({
+                isMover: zod_1.z.boolean().default(false).describe('Whether this object acts as a mover/platform'),
+                moveDistance: zod_1.z.number().default(10).describe('Distance to move'),
+                moveSpeed: zod_1.z.number().default(5).describe('Speed of movement'),
+                moveDirection: zod_1.z.enum(['X', 'Y', 'Z']).default('Y').describe('Direction of movement'),
+                moveType: zod_1.z.enum(['Loop', 'PingPong', 'Once']).default('PingPong').describe('Type of movement pattern')
             }).optional().describe('Optional mover/platform properties'),
-            constraints: z.array(z.object({
-                type: z.enum(['Hinge', 'Rope', 'Spring', 'Weld', 'Motor', 'Rod', 'Prismatic', 'Cylindrical', 'BallInSocket', 'Universal']).describe('Type of constraint'),
-                attachTo: z.string().describe('Name of the part to attach to'),
-                attachmentName: z.string().optional().describe('Optional name for the attachment'),
-                limits: z.object({
-                    lowerLimit: z.number().default(-45).describe('Lower limit (in degrees for rotational constraints)'),
-                    upperLimit: z.number().default(45).describe('Upper limit (in degrees for rotational constraints)')
+            constraints: zod_1.z.array(zod_1.z.object({
+                type: zod_1.z.enum(['Hinge', 'Rope', 'Spring', 'Weld', 'Motor', 'Rod', 'Prismatic', 'Cylindrical', 'BallInSocket', 'Universal']).describe('Type of constraint'),
+                attachTo: zod_1.z.string().describe('Name of the part to attach to'),
+                attachmentName: zod_1.z.string().optional().describe('Optional name for the attachment'),
+                limits: zod_1.z.object({
+                    lowerLimit: zod_1.z.number().default(-45).describe('Lower limit (in degrees for rotational constraints)'),
+                    upperLimit: zod_1.z.number().default(45).describe('Upper limit (in degrees for rotational constraints)')
                 }).optional().describe('Optional constraint limits'),
-                properties: z.record(z.any()).optional().describe('Additional properties specific to this constraint type')
+                properties: zod_1.z.record(zod_1.z.any()).optional().describe('Additional properties specific to this constraint type')
             })).optional().describe('Optional constraints to attach to other objects')
         }, async ({ objectName, objectType, size, position, material, physicsProperties, collisionGroups, moverProperties, constraints }) => {
-            logger.info(`Creating physics system for ${objectName} of type ${objectType}`);
+            logger_js_1.logger.info(`Creating physics system for ${objectName} of type ${objectType}`);
             try {
                 // Generate Lua code for the physics system
                 let code = `-- Physics System for ${objectName}
@@ -308,7 +311,7 @@ return ${objectName}
                 };
             }
             catch (error) {
-                logger.error('Error creating physics system:', error);
+                logger_js_1.logger.error('Error creating physics system:', { message: error instanceof Error ? error.message : String(error) });
                 return {
                     content: [
                         {
@@ -323,17 +326,17 @@ return ${objectName}
         // Register collision group management tool
         server.tool('setup-collision-groups', {
             // Input schema using Zod
-            collisionGroups: z.array(z.object({
-                name: z.string().describe('Name of the collision group'),
-                description: z.string().optional().describe('Optional description of what this group is for')
+            collisionGroups: zod_1.z.array(zod_1.z.object({
+                name: zod_1.z.string().describe('Name of the collision group'),
+                description: zod_1.z.string().optional().describe('Optional description of what this group is for')
             })).describe('Array of collision groups to create'),
-            collisionRules: z.array(z.object({
-                group1: z.string().describe('First collision group'),
-                group2: z.string().describe('Second collision group'),
-                canCollide: z.boolean().default(true).describe('Whether these groups can collide with each other')
+            collisionRules: zod_1.z.array(zod_1.z.object({
+                group1: zod_1.z.string().describe('First collision group'),
+                group2: zod_1.z.string().describe('Second collision group'),
+                canCollide: zod_1.z.boolean().default(true).describe('Whether these groups can collide with each other')
             })).describe('Rules defining which groups can collide with each other')
         }, async ({ collisionGroups, collisionRules }) => {
-            logger.info(`Setting up ${collisionGroups.length} collision groups with ${collisionRules.length} rules`);
+            logger_js_1.logger.info(`Setting up ${collisionGroups.length} collision groups with ${collisionRules.length} rules`);
             try {
                 // Generate Lua code for collision group management
                 const code = `-- Collision Group Management System
@@ -437,7 +440,7 @@ return CollisionManager
                 };
             }
             catch (error) {
-                logger.error('Error setting up collision groups:', error);
+                logger_js_1.logger.error('Error setting up collision groups:', { message: error instanceof Error ? error.message : String(error) });
                 return {
                     content: [
                         {
@@ -449,7 +452,7 @@ return CollisionManager
                 };
             }
         });
-        logger.debug('Physics system tools registered');
+        logger_js_1.logger.debug('Physics system tools registered');
     }
 };
 //# sourceMappingURL=physicsSystem.js.map

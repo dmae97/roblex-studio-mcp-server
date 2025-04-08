@@ -1,21 +1,104 @@
-import { ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.templates = void 0;
+const mcp_js_1 = require("@modelcontextprotocol/sdk/server/mcp.js");
+const errorHandler_1 = require("../utils/errorHandler");
+const logger_1 = require("../utils/logger");
+// Mock template data (replace with actual data source if needed)
+const templateData = {
+    categories: [
+        {
+            id: 'game',
+            name: 'Game Templates',
+            templates: [
+                {
+                    id: 'platformer',
+                    name: 'Platformer Game',
+                    description: 'A basic 2D platformer game template with platforms and character controls',
+                    uri: 'template://roblex/game/platformer'
+                },
+                {
+                    id: 'rpg',
+                    name: 'RPG Game',
+                    description: 'A basic RPG game template with character stats, inventory, and NPCs',
+                    uri: 'template://roblex/game/rpg'
+                },
+                {
+                    id: 'basic',
+                    name: 'Basic Game',
+                    description: 'A minimal game template with basic player setup',
+                    uri: 'template://roblex/game/basic'
+                }
+            ]
+        },
+        {
+            id: 'script',
+            name: 'Script Templates',
+            templates: [
+                {
+                    id: 'character-controller',
+                    name: 'Character Controller',
+                    description: 'A customizable character controller with advanced movement features',
+                    uri: 'template://roblex/script/character-controller'
+                },
+                {
+                    id: 'inventory-system',
+                    name: 'Inventory System',
+                    description: 'A complete inventory system with item management and UI',
+                    uri: 'template://roblex/script/inventory-system'
+                },
+                {
+                    id: 'basic',
+                    name: 'Basic Script',
+                    description: 'A minimal script template with common setup patterns',
+                    uri: 'template://roblex/script/basic'
+                }
+            ]
+        }
+    ]
+};
 /**
  * Template resources for Roblex Studio
  */
-export const templates = {
+exports.templates = {
     register: (server) => {
-        // Register template resource
-        server.resource('code-templates', new ResourceTemplate('template://roblex/{category}/{name}', { list: 'template://roblex' }), async (uri, { category, name }) => {
-            logger.info(`Fetching template: ${category}/${name}`);
-            try {
-                // In a real implementation, this would fetch templates from a database or file system
-                // For now, we'll return mock templates based on the requested category and name
-                let content = '';
-                if (category === 'game') {
-                    switch (name) {
-                        case 'platformer':
-                            content = `-- Roblex Platformer Game Template
+        logger_1.logger.info('Registering template resources...');
+        try {
+            // Register template resource with integrated listing
+            server.resource('code-templates', 
+            // ResourceTemplate now includes the list callback in its options
+            new mcp_js_1.ResourceTemplate('template://roblex/{category}/{name}', {
+                list: async () => {
+                    logger_1.logger.info('Listing all Roblex templates via ResourceTemplate list callback');
+                    try {
+                        // Flatten the template data into the Resource structure
+                        const allTemplates = templateData.categories.flatMap(category => category.templates.map(template => ({
+                            uri: template.uri,
+                            name: `${category.name} - ${template.name}`, // Informative name
+                            description: template.description
+                            // mimeType is usually not needed for listing resources
+                        })));
+                        return { resources: allTemplates };
+                    }
+                    catch (error) {
+                        const errorMessage = error instanceof Error ? error.message : String(error);
+                        logger_1.logger.error('Error listing templates', { error: errorMessage });
+                        return { resources: [], error: new errorHandler_1.DatastoreError(`Failed to list templates: ${errorMessage}`) };
+                    }
+                }
+            }), 
+            // Read callback for individual templates
+            async (uri, variables) => {
+                // Handle potential array values if necessary, though unlikely for this template
+                const category = typeof variables.category === 'string' ? variables.category : variables.category?.[0] ?? '';
+                const name = typeof variables.name === 'string' ? variables.name : variables.name?.[0] ?? '';
+                logger_1.logger.info(`Fetching template: ${category}/${name}`);
+                try {
+                    let content = '';
+                    if (category === 'game') {
+                        switch (name) {
+                            case 'platformer':
+                                content = `-- Roblex Platformer Game Template
 -- A basic 2D platformer game template for Roblex Studio
 
 -- Services
@@ -85,9 +168,9 @@ createPlatform(Vector3.new(5, 9, -8), Vector3.new(5, 1, 5))
 
 print("Platformer template initialized!")
 `;
-                            break;
-                        case 'rpg':
-                            content = `-- Roblex RPG Game Template
+                                break;
+                            case 'rpg':
+                                content = `-- Roblex RPG Game Template
 -- A basic RPG game template for Roblex Studio
 
 -- Services
@@ -243,9 +326,9 @@ createNPC(Vector3.new(-5, 0.5, 8), "Quest Giver")
 
 print("RPG template initialized!")
 `;
-                            break;
-                        default:
-                            content = `-- Basic Roblex Game Template
+                                break;
+                            default:
+                                content = `-- Basic Roblex Game Template
 -- A simple starting point for a Roblex game
 
 -- Services
@@ -297,12 +380,12 @@ end
 
 print("Game template initialized!")
 `;
+                        }
                     }
-                }
-                else if (category === 'script') {
-                    switch (name) {
-                        case 'character-controller':
-                            content = `-- Roblex Character Controller Template
+                    else if (category === 'script') {
+                        switch (name) {
+                            case 'character-controller':
+                                content = `-- Roblex Character Controller Template
 -- A customizable character controller for Roblex games
 
 -- Services
@@ -444,9 +527,9 @@ initCharacter()
 
 print("Character controller initialized!")
 `;
-                            break;
-                        case 'inventory-system':
-                            content = `-- Roblex Inventory System Template
+                                break;
+                            case 'inventory-system':
+                                content = `-- Roblex Inventory System Template
 -- A customizable inventory system for Roblex games
 
 -- Services
@@ -645,9 +728,9 @@ end)
 
 print("Inventory system initialized!")
 `;
-                            break;
-                        default:
-                            content = `-- Basic Roblex Script Template
+                                break;
+                            default:
+                                content = `-- Basic Roblex Script Template
 -- A simple starting point for a Roblex script
 
 -- Services
@@ -713,123 +796,44 @@ return {
     GetPart = function() return createdPart end
 }
 `;
+                        }
                     }
-                }
-                else {
-                    content = `-- Roblex Studio Template
--- No specific template found for category: ${category}
+                    else {
+                        // Handle case where category is not 'game' or 'script'
+                        logger_1.logger.warn(`Unknown template category requested: ${category}`);
+                        content = `-- Roblex Studio Template
+-- Unknown template category: ${category}
 
 print("Template category '${category}' with name '${name}' not found.")
 print("Available categories: game, script")
-
--- Basic code example
-local function exampleFunction()
-    print("This is an example function")
-    return true
-end
-
-exampleFunction()
 `;
+                    }
+                    if (!content) {
+                        logger_1.logger.warn(`Template not found: ${category}/${name}`);
+                        return { contents: [], error: new errorHandler_1.NotFoundError(`Template not found: ${category}/${name}`) };
+                    }
+                    // Define content part inline, letting TS infer type within the array
+                    const contentPart = {
+                        uri: uri.toString(),
+                        text: content,
+                        mimeType: 'text/plain'
+                    };
+                    return {
+                        contents: [contentPart]
+                    };
                 }
-                return {
-                    contents: [
-                        {
-                            uri: uri.href,
-                            text: content
-                        }
-                    ]
-                };
-            }
-            catch (error) {
-                logger.error(`Error fetching template: ${category}/${name}:`, error);
-                return {
-                    contents: [
-                        {
-                            uri: uri.href,
-                            text: `Error fetching template: ${error instanceof Error ? error.message : String(error)}`
-                        }
-                    ]
-                };
-            }
-        });
-        // Register template listing
-        server.resource('template-listing', 'template://roblex', async (uri) => {
-            logger.info('Fetching template listing');
-            try {
-                // Return a listing of all available templates
-                return {
-                    contents: [
-                        {
-                            uri: uri.href,
-                            text: JSON.stringify({
-                                categories: [
-                                    {
-                                        id: 'game',
-                                        name: 'Game Templates',
-                                        templates: [
-                                            {
-                                                id: 'platformer',
-                                                name: 'Platformer Game',
-                                                description: 'A basic 2D platformer game template with platforms and character controls',
-                                                uri: 'template://roblex/game/platformer'
-                                            },
-                                            {
-                                                id: 'rpg',
-                                                name: 'RPG Game',
-                                                description: 'A basic RPG game template with character stats, inventory, and NPCs',
-                                                uri: 'template://roblex/game/rpg'
-                                            },
-                                            {
-                                                id: 'basic',
-                                                name: 'Basic Game',
-                                                description: 'A minimal game template with basic player setup',
-                                                uri: 'template://roblex/game/basic'
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        id: 'script',
-                                        name: 'Script Templates',
-                                        templates: [
-                                            {
-                                                id: 'character-controller',
-                                                name: 'Character Controller',
-                                                description: 'A customizable character controller with advanced movement features',
-                                                uri: 'template://roblex/script/character-controller'
-                                            },
-                                            {
-                                                id: 'inventory-system',
-                                                name: 'Inventory System',
-                                                description: 'A complete inventory system with item management and UI',
-                                                uri: 'template://roblex/script/inventory-system'
-                                            },
-                                            {
-                                                id: 'basic',
-                                                name: 'Basic Script',
-                                                description: 'A minimal script template with common setup patterns',
-                                                uri: 'template://roblex/script/basic'
-                                            }
-                                        ]
-                                    }
-                                ]
-                            }, null, 2)
-                        }
-                    ]
-                };
-            }
-            catch (error) {
-                logger.error('Error fetching template listing:', error);
-                return {
-                    contents: [
-                        {
-                            uri: uri.href,
-                            text: `Error fetching template listing: ${error instanceof Error ? error.message : String(error)}`
-                        }
-                    ]
-                };
-            }
-        });
-        logger.debug('Template resources registered');
+                catch (error) {
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    logger_1.logger.error(`Error fetching template: ${category}/${name}`, { error: errorMessage });
+                    return { contents: [], error: new errorHandler_1.DatastoreError(`Error fetching template: ${errorMessage}`) };
+                }
+            });
+            logger_1.logger.debug('Template resources registered successfully.');
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger_1.logger.error('Failed to register template resources', { error: errorMessage });
+        }
     }
 };
 //# sourceMappingURL=templates.js.map

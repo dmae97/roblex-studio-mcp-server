@@ -1,2 +1,2 @@
-import { Tool } from '@modelcontextprotocol/sdk';
-export declare const aiTester: Tool;
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+export declare const registerAiTester: (server: McpServer) => void;

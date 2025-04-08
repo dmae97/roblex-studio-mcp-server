@@ -1,11 +1,14 @@
-import { EventEmitter } from 'events';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.BaseModel = void 0;
+const events_1 = require("events");
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Base model class for MCP (Model-Context-Protocol) implementation
  * This implementation provides core functionality similar to the SDK's BaseModel
  * but without external dependencies
  */
-export class BaseModel extends EventEmitter {
+class BaseModel extends events_1.EventEmitter {
     _state;
     _id;
     /**
@@ -16,7 +19,7 @@ export class BaseModel extends EventEmitter {
         super();
         this._id = id;
         this._state = {};
-        logger.debug(`BaseModel created: ${id}`);
+        logger_js_1.logger.debug(`BaseModel created: ${id}`);
     }
     /**
      * Get the model's unique identifier
@@ -94,4 +97,5 @@ export class BaseModel extends EventEmitter {
         return key in this._state;
     }
 }
+exports.BaseModel = BaseModel;
 //# sourceMappingURL=BaseModel.js.map

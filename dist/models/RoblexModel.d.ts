@@ -1,4 +1,4 @@
-/// <reference types="node" resolution-mode="require"/>
+/// <reference types="node" />
 import { EventEmitter } from 'events';
 import { ModelState, ChangeListener, BatchChangeListener, PropertyChangeListener, ResetListener } from './types.js';
 /**

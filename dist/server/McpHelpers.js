@@ -1,8 +1,11 @@
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PromptRegistry = exports.ResourceRegistry = exports.ToolRegistry = void 0;
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Simplified tool registry interface
  */
-export class ToolRegistry {
+class ToolRegistry {
     _tools = new Map();
     /**
      * Register all tools with an MCP server
@@ -12,7 +15,7 @@ export class ToolRegistry {
         this._tools.forEach((callback, name) => {
             server.tool(name, callback);
         });
-        logger.info(`Registered ${this._tools.size} tools with server`);
+        logger_js_1.logger.info(`Registered ${this._tools.size} tools with server`);
     }
     /**
      * Add a tool to the registry
@@ -21,13 +24,14 @@ export class ToolRegistry {
      */
     add(name, callback) {
         this._tools.set(name, callback);
-        logger.debug(`Added tool to registry: ${name}`);
+        logger_js_1.logger.debug(`Added tool to registry: ${name}`);
     }
 }
+exports.ToolRegistry = ToolRegistry;
 /**
  * Simplified resource registry interface
  */
-export class ResourceRegistry {
+class ResourceRegistry {
     _resources = new Map();
     /**
      * Register all resources with an MCP server
@@ -36,7 +40,7 @@ export class ResourceRegistry {
     register(server) {
         // In our simplified implementation, we don't directly register resources
         // but log the registration for compatibility
-        logger.info(`Registered ${this._resources.size} resources with server`);
+        logger_js_1.logger.info(`Registered ${this._resources.size} resources with server`);
     }
     /**
      * Add a resource to the registry
@@ -45,13 +49,14 @@ export class ResourceRegistry {
      */
     add(name, implementation) {
         this._resources.set(name, implementation);
-        logger.debug(`Added resource to registry: ${name}`);
+        logger_js_1.logger.debug(`Added resource to registry: ${name}`);
     }
 }
+exports.ResourceRegistry = ResourceRegistry;
 /**
  * Simplified prompt registry interface
  */
-export class PromptRegistry {
+class PromptRegistry {
     _prompts = new Map();
     /**
      * Register all prompts with an MCP server
@@ -60,7 +65,7 @@ export class PromptRegistry {
     register(server) {
         // In our simplified implementation, we don't directly register prompts
         // but log the registration for compatibility
-        logger.info(`Registered ${this._prompts.size} prompts with server`);
+        logger_js_1.logger.info(`Registered ${this._prompts.size} prompts with server`);
     }
     /**
      * Add a prompt to the registry
@@ -69,7 +74,8 @@ export class PromptRegistry {
      */
     add(name, implementation) {
         this._prompts.set(name, implementation);
-        logger.debug(`Added prompt to registry: ${name}`);
+        logger_js_1.logger.debug(`Added prompt to registry: ${name}`);
     }
 }
+exports.PromptRegistry = PromptRegistry;
 //# sourceMappingURL=McpHelpers.js.map

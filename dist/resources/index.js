@@ -1,35 +1,30 @@
-import { ResourceRegistry } from '../server/McpHelpers.js';
-import { documentation } from './documentation.js';
-import { templates } from './templates.js';
-import { logger } from '../utils/logger.js';
-// Create a new resource registry
-const resourceRegistry = new ResourceRegistry();
-// 간소화된 등록
-if (documentation && typeof documentation.register === 'function') {
-    try {
-        resourceRegistry.add('documentation', documentation);
-    }
-    catch (error) {
-        logger.warn('Failed to register documentation', { error: String(error) });
-    }
-}
-if (templates && typeof templates.register === 'function') {
-    try {
-        resourceRegistry.add('templates', templates);
-    }
-    catch (error) {
-        logger.warn('Failed to register templates', { error: String(error) });
-    }
-}
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.roblexResources = void 0;
+const documentation_js_1 = require("./documentation.js");
+const templates_js_1 = require("./templates.js");
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Registry for all Roblex Studio resources
  */
-export const roblexResources = {
+exports.roblexResources = {
     register: (server) => {
-        logger.info('Registering Roblex Studio resources...');
-        // Register all resources from the registry
-        resourceRegistry.register(server);
-        logger.info('Roblex Studio resources registered successfully');
+        logger_js_1.logger.info('Registering Roblex Studio resources...');
+        try {
+            // 문서 리소스 등록
+            if (documentation_js_1.documentation && typeof documentation_js_1.documentation.register === 'function') {
+                documentation_js_1.documentation.register(server);
+            }
+            // 템플릿 리소스 등록
+            if (templates_js_1.templates && typeof templates_js_1.templates.register === 'function') {
+                templates_js_1.templates.register(server);
+            }
+        }
+        catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            logger_js_1.logger.error(`Error registering resources: ${errorMessage}`);
+        }
+        logger_js_1.logger.info('Roblex Studio resources registered successfully');
     }
 };
 //# sourceMappingURL=index.js.map

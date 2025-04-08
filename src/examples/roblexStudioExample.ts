@@ -100,9 +100,9 @@ print("Player controller initialized")`,
   );
   
   // Register the models with the global context
-  globalContext.registerModel(playerScript.model);
-  globalContext.registerModel(healthBar.model);
-  globalContext.registerModel(gameService.model);
+  globalContext.registerModel(playerScript.model as any);
+  globalContext.registerModel(healthBar.model as any);
+  globalContext.registerModel(gameService.model as any);
   
   // Register some handlers for Roblox Studio messages
   adapter.protocol.registerHandler('studio:saveScript', async (data) => {

@@ -1,22 +1,25 @@
-import { z } from 'zod';
-import { logger } from '../utils/logger.js';
-import { createRoblexApiClient } from '../api/roblexClient.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.roblexApiConnector = void 0;
+const zod_1 = require("zod");
+const logger_js_1 = require("../utils/logger.js");
+const roblexClient_js_1 = require("../api/roblexClient.js");
 /**
  * Tool for connecting to the Roblex Studio API
  */
-export const roblexApiConnector = {
+exports.roblexApiConnector = {
     register: (server) => {
         // Create the API client once
-        const apiClient = createRoblexApiClient();
+        const apiClient = (0, roblexClient_js_1.createRoblexApiClient)();
         // Register search assets tool
         server.tool('roblex-search-assets', {
             // Input schema using Zod
-            query: z.string().describe('Search query'),
-            assetType: z.enum(['Model', 'Decal', 'Mesh', 'Animation', 'Sound', 'Texture']).optional().describe('Type of asset to search for'),
-            limit: z.number().int().positive().max(100).default(10).describe('Maximum number of results'),
-            offset: z.number().int().nonnegative().default(0).describe('Pagination offset')
+            query: zod_1.z.string().describe('Search query'),
+            assetType: zod_1.z.enum(['Model', 'Decal', 'Mesh', 'Animation', 'Sound', 'Texture']).optional().describe('Type of asset to search for'),
+            limit: zod_1.z.number().int().positive().max(100).default(10).describe('Maximum number of results'),
+            offset: zod_1.z.number().int().nonnegative().default(0).describe('Pagination offset')
         }, async ({ query, assetType, limit, offset }) => {
-            logger.info(`Searching Roblex assets with query: ${query}`);
+            logger_js_1.logger.info(`Searching Roblex assets with query: ${query}`);
             try {
                 const results = await apiClient.searchAssets(query, assetType, limit, offset);
                 return {
@@ -29,7 +32,7 @@ export const roblexApiConnector = {
                 };
             }
             catch (error) {
-                logger.error('Error searching assets:', error);
+                logger_js_1.logger.error('Error searching assets:', { message: error instanceof Error ? error.message : String(error) });
                 return {
                     content: [
                         {
@@ -44,10 +47,10 @@ export const roblexApiConnector = {
         // Register validate script tool
         server.tool('roblex-validate-script', {
             // Input schema using Zod
-            scriptContent: z.string().describe('The Lua script content to validate'),
-            scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script')
+            scriptContent: zod_1.z.string().describe('The Lua script content to validate'),
+            scriptType: zod_1.z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script')
         }, async ({ scriptContent, scriptType }) => {
-            logger.info(`Validating ${scriptType} through Roblex API`);
+            logger_js_1.logger.info(`Validating ${scriptType} through Roblex API`);
             try {
                 const validation = await apiClient.validateScript({
                     content: scriptContent,
@@ -63,7 +66,7 @@ export const roblexApiConnector = {
                 };
             }
             catch (error) {
-                logger.error('Error validating script:', error);
+                logger_js_1.logger.error('Error validating script:', { message: error instanceof Error ? error.message : String(error) });
                 return {
                     content: [
                         {
@@ -78,12 +81,12 @@ export const roblexApiConnector = {
         // Register create script tool
         server.tool('roblex-create-script', {
             // Input schema using Zod
-            name: z.string().describe('Name of the script'),
-            type: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script'),
-            content: z.string().describe('Script content'),
-            parentId: z.string().optional().describe('ID of the parent object')
+            name: zod_1.z.string().describe('Name of the script'),
+            type: zod_1.z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script'),
+            content: zod_1.z.string().describe('Script content'),
+            parentId: zod_1.z.string().optional().describe('ID of the parent object')
         }, async ({ name, type, content, parentId }) => {
-            logger.info(`Creating ${type} "${name}" through Roblex API`);
+            logger_js_1.logger.info(`Creating ${type} "${name}" through Roblex API`);
             try {
                 const script = await apiClient.createScript({
                     name,
@@ -101,7 +104,7 @@ export const roblexApiConnector = {
                 };
             }
             catch (error) {
-                logger.error('Error creating script:', error);
+                logger_js_1.logger.error('Error creating script:', { message: error instanceof Error ? error.message : String(error) });
                 return {
                     content: [
                         {
@@ -116,9 +119,9 @@ export const roblexApiConnector = {
         // Register get asset tool
         server.tool('roblex-get-asset', {
             // Input schema using Zod
-            assetId: z.string().describe('ID of the asset to get')
+            assetId: zod_1.z.string().describe('ID of the asset to get')
         }, async ({ assetId }) => {
-            logger.info(`Getting asset with ID: ${assetId}`);
+            logger_js_1.logger.info(`Getting asset with ID: ${assetId}`);
             try {
                 const asset = await apiClient.getAsset(assetId);
                 return {
@@ -131,7 +134,7 @@ export const roblexApiConnector = {
                 };
             }
             catch (error) {
-                logger.error('Error getting asset:', error);
+                logger_js_1.logger.error('Error getting asset:', { message: error instanceof Error ? error.message : String(error) });
                 return {
                     content: [
                         {
@@ -146,9 +149,9 @@ export const roblexApiConnector = {
         // Register get user profile tool
         server.tool('roblex-get-user-profile', {
             // Input schema using Zod
-            userId: z.string().describe('ID of the user')
+            userId: zod_1.z.string().describe('ID of the user')
         }, async ({ userId }) => {
-            logger.info(`Getting user profile for user ID: ${userId}`);
+            logger_js_1.logger.info(`Getting user profile for user ID: ${userId}`);
             try {
                 const profile = await apiClient.getUserProfile(userId);
                 return {
@@ -161,7 +164,7 @@ export const roblexApiConnector = {
                 };
             }
             catch (error) {
-                logger.error('Error getting user profile:', error);
+                logger_js_1.logger.error('Error getting user profile:', { message: error instanceof Error ? error.message : String(error) });
                 return {
                     content: [
                         {
@@ -173,7 +176,7 @@ export const roblexApiConnector = {
                 };
             }
         });
-        logger.debug('Roblex API connector tools registered');
+        logger_js_1.logger.debug('Roblex API connector tools registered');
     }
 };
 //# sourceMappingURL=roblexApiConnector.js.map

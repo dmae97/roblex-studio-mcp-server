@@ -1,4 +1,4 @@
-/// <reference types="node" resolution-mode="require"/>
+/// <reference types="node" />
 import http from 'http';
 /**
  * Initialize WebSocket server

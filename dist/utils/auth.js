@@ -1,5 +1,11 @@
-import crypto from 'crypto';
-import { logger } from './logger.js';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sessionAuth = exports.tokenAuth = exports.apiKeyAuth = exports.init = exports.cleanupSessions = exports.revokeSession = exports.getSessionInfo = exports.isSessionValid = exports.updateSessionActivity = exports.registerSession = exports.createHash = exports.verifyApiKey = exports.verifyToken = exports.createToken = exports.generateSessionId = exports.generateToken = void 0;
+const crypto_1 = __importDefault(require("crypto"));
+const logger_js_1 = require("./logger.js");
 /**
  * Authentication and security utilities for MCP server
  */
@@ -22,18 +28,20 @@ function loadApiKeys() {
             }
         }
     });
-    logger.info(`Loaded ${Object.keys(API_KEYS).length} API keys`);
+    logger_js_1.logger.info(`Loaded ${Object.keys(API_KEYS).length} API keys`);
 }
 // Generate a random token
-export function generateToken(length = 32) {
-    return crypto.randomBytes(length).toString('hex');
+function generateToken(length = 32) {
+    return crypto_1.default.randomBytes(length).toString('hex');
 }
+exports.generateToken = generateToken;
 // Generate a session ID
-export function generateSessionId(prefix = 'session') {
+function generateSessionId(prefix = 'session') {
     return `${prefix}_${Date.now()}_${generateToken(8)}`;
 }
+exports.generateSessionId = generateSessionId;
 // Create a JWT token
-export function createToken(payload, expiresIn = TOKEN_EXPIRATION) {
+function createToken(payload, expiresIn = TOKEN_EXPIRATION) {
     const header = {
         alg: 'HS256',
         typ: 'JWT'
@@ -46,17 +54,18 @@ export function createToken(payload, expiresIn = TOKEN_EXPIRATION) {
     };
     const headerBase64 = Buffer.from(JSON.stringify(header)).toString('base64url');
     const payloadBase64 = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
-    const signature = crypto
+    const signature = crypto_1.default
         .createHmac('sha256', JWT_SECRET)
         .update(`${headerBase64}.${payloadBase64}`)
         .digest('base64url');
     return `${headerBase64}.${payloadBase64}.${signature}`;
 }
+exports.createToken = createToken;
 // Verify a JWT token
-export function verifyToken(token) {
+function verifyToken(token) {
     try {
         const [headerBase64, payloadBase64, signature] = token.split('.');
-        const expectedSignature = crypto
+        const expectedSignature = crypto_1.default
             .createHmac('sha256', JWT_SECRET)
             .update(`${headerBase64}.${payloadBase64}`)
             .digest('base64url');
@@ -71,12 +80,13 @@ export function verifyToken(token) {
         return payload;
     }
     catch (error) {
-        logger.error(`Error verifying token: ${error instanceof Error ? error.message : String(error)}`);
+        logger_js_1.logger.error(`Error verifying token: ${error instanceof Error ? error.message : String(error)}`);
         return null;
     }
 }
+exports.verifyToken = verifyToken;
 // Verify an API key
-export function verifyApiKey(apiKey) {
+function verifyApiKey(apiKey) {
     if (API_KEYS[apiKey] && API_KEYS[apiKey].enabled) {
         return {
             valid: true,
@@ -86,14 +96,16 @@ export function verifyApiKey(apiKey) {
     }
     return { valid: false };
 }
+exports.verifyApiKey = verifyApiKey;
 // Create a hash of a string
-export function createHash(data) {
-    return crypto.createHash('sha256').update(data).digest('hex');
+function createHash(data) {
+    return crypto_1.default.createHash('sha256').update(data).digest('hex');
 }
+exports.createHash = createHash;
 // Active sessions store
 const activeSessions = {};
 // Register a new session
-export function registerSession(sessionId, userId, role, ipAddress) {
+function registerSession(sessionId, userId, role, ipAddress) {
     if (!activeSessions[sessionId]) {
         activeSessions[sessionId] = {
             userId,
@@ -102,52 +114,59 @@ export function registerSession(sessionId, userId, role, ipAddress) {
             createdAt: Date.now(),
             lastActivity: Date.now()
         };
-        logger.info(`Session registered: ${sessionId} (${userId}, ${role})`);
+        logger_js_1.logger.info(`Session registered: ${sessionId} (${userId}, ${role})`);
     }
     else {
         updateSessionActivity(sessionId);
     }
 }
+exports.registerSession = registerSession;
 // Update session activity
-export function updateSessionActivity(sessionId) {
+function updateSessionActivity(sessionId) {
     if (activeSessions[sessionId]) {
         activeSessions[sessionId].lastActivity = Date.now();
     }
 }
+exports.updateSessionActivity = updateSessionActivity;
 // Check if a session is valid
-export function isSessionValid(sessionId) {
+function isSessionValid(sessionId) {
     return !!activeSessions[sessionId];
 }
+exports.isSessionValid = isSessionValid;
 // Get session info
-export function getSessionInfo(sessionId) {
+function getSessionInfo(sessionId) {
     return activeSessions[sessionId];
 }
+exports.getSessionInfo = getSessionInfo;
 // Revoke a session
-export function revokeSession(sessionId) {
+function revokeSession(sessionId) {
     if (activeSessions[sessionId]) {
-        logger.debug(`Revoking session ${sessionId} for user ${activeSessions[sessionId].userId}`);
+        logger_js_1.logger.debug(`Revoking session ${sessionId} for user ${activeSessions[sessionId].userId}`);
         delete activeSessions[sessionId];
     }
 }
+exports.revokeSession = revokeSession;
 // Clean up expired sessions
-export function cleanupSessions(maxAgeMs = 3600000) {
+function cleanupSessions(maxAgeMs = 3600000) {
     const now = Date.now();
     const expiredSessions = Object.keys(activeSessions).filter(sessionId => (now - activeSessions[sessionId].lastActivity) > maxAgeMs);
     expiredSessions.forEach(sessionId => {
-        logger.debug(`Session ${sessionId} expired, revoking`);
+        logger_js_1.logger.debug(`Session ${sessionId} expired, revoking`);
         revokeSession(sessionId);
     });
-    logger.info(`Cleaned up ${expiredSessions.length} expired sessions`);
+    logger_js_1.logger.info(`Cleaned up ${expiredSessions.length} expired sessions`);
 }
+exports.cleanupSessions = cleanupSessions;
 // Initialize authentication system
-export function init() {
+function init() {
     loadApiKeys();
     // Set up session cleanup interval
     setInterval(() => cleanupSessions(), 60000); // Clean up every minute
-    logger.info('Authentication system initialized');
+    logger_js_1.logger.info('Authentication system initialized');
 }
+exports.init = init;
 // Express middleware for API key authentication
-export function apiKeyAuth(req, res, next) {
+function apiKeyAuth(req, res, next) {
     const apiKey = req.headers['x-api-key'] || req.query.apiKey;
     if (!apiKey) {
         res.status(401).json({ error: 'API key required' });
@@ -165,8 +184,9 @@ export function apiKeyAuth(req, res, next) {
     };
     next();
 }
+exports.apiKeyAuth = apiKeyAuth;
 // Express middleware for token authentication
-export function tokenAuth(req, res, next) {
+function tokenAuth(req, res, next) {
     const token = req.headers.authorization?.split(' ')[1] || req.query.token;
     if (!token) {
         res.status(401).json({ error: 'Authentication token required' });
@@ -181,8 +201,9 @@ export function tokenAuth(req, res, next) {
     req.user = payload;
     next();
 }
+exports.tokenAuth = tokenAuth;
 // Express middleware for session authentication
-export function sessionAuth(req, res, next) {
+function sessionAuth(req, res, next) {
     const sessionId = req.query.sessionId || req.cookies?.sessionId;
     if (!sessionId) {
         res.status(401).json({ error: 'Session ID required' });
@@ -201,4 +222,5 @@ export function sessionAuth(req, res, next) {
     };
     next();
 }
+exports.sessionAuth = sessionAuth;
 //# sourceMappingURL=auth.js.map

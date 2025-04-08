@@ -1,4 +1,4 @@
-import { McpServer } from '../server/McpServer.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ToolRegistry } from '../server/McpHelpers.js';
 import { scriptGenerator } from './scriptGenerator.js'; // Import the new tool
 // import { assetFinder } from './assetFinder.js';
@@ -11,7 +11,7 @@ import { scriptValidator } from './scriptValidator.js';
 // import { metaverseIntegration } from './metaverseIntegration.js';
 // import { educationalTools } from './educationalTools.js';
 // import { localizationManager } from './localizationManager.js';
-// import { aiTester } from './aiTester.js';
+import { registerAiTester } from './aiTester.js';
 // import { openCloudConnector } from './opencloud/openCloudConnector.js';
 import { logger } from '../utils/logger.js';
 
@@ -48,12 +48,28 @@ if (scriptGenerator && typeof scriptGenerator.register === 'function') {
  * Registry for all Roblex Studio tools
  */
 export const roblexTools = {
-  // any 타입을 사용하여 타입 호환성 문제 우회
-  register: (server: any) => {
+  register: (server: McpServer) => {
     logger.info('Registering Roblex Studio tools...');
     
-    // Register all tools from the registry
-    toolRegistry.register(server);
+    // 직접 도구 등록
+    try {
+      // 스크립트 검증 도구
+      if (scriptValidator && typeof scriptValidator.register === 'function') {
+        scriptValidator.register(server);
+      }
+      
+      // 스크립트 생성 도구
+      if (scriptGenerator && typeof scriptGenerator.register === 'function') {
+        scriptGenerator.register(server);
+      }
+      
+      // AI 테스터 도구
+      registerAiTester(server);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Error registering tools: ${errorMessage}`);
+    }
     
     logger.info('Roblex Studio tools registered successfully');
   }

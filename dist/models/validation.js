@@ -1,44 +1,47 @@
-import { logger } from '../utils/logger.js';
-import { z } from 'zod';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.validateModelUpdates = exports.validateModelData = exports.serviceModelSchema = exports.uiModelSchema = exports.scriptModelSchema = void 0;
+const logger_js_1 = require("../utils/logger.js");
+const zod_1 = require("zod");
 /**
  * 모델 유효성 검사 유틸리티
  *
  * Roblox Studio 모델의 데이터 무결성을 보장하기 위한 스키마 검증 기능을 제공합니다.
  */
 // 기본 스크립트 모델 스키마
-export const scriptModelSchema = z.object({
-    name: z.string().min(1),
-    id: z.string().optional(),
-    content: z.string(),
-    type: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']),
-    parent: z.string().optional(),
-    enabled: z.boolean().default(true),
-    properties: z.record(z.any()).optional()
+exports.scriptModelSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1),
+    id: zod_1.z.string().optional(),
+    content: zod_1.z.string(),
+    type: zod_1.z.enum(['ServerScript', 'LocalScript', 'ModuleScript']),
+    parent: zod_1.z.string().optional(),
+    enabled: zod_1.z.boolean().default(true),
+    properties: zod_1.z.record(zod_1.z.any()).optional()
 });
 // UI 모델 스키마
-export const uiModelSchema = z.object({
-    name: z.string().min(1),
-    id: z.string().optional(),
-    type: z.enum(['Frame', 'Button', 'TextLabel', 'TextBox', 'ImageLabel', 'ScrollingFrame', 'Other']),
-    parent: z.string().optional(),
-    position: z.object({
-        x: z.number(),
-        y: z.number()
+exports.uiModelSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1),
+    id: zod_1.z.string().optional(),
+    type: zod_1.z.enum(['Frame', 'Button', 'TextLabel', 'TextBox', 'ImageLabel', 'ScrollingFrame', 'Other']),
+    parent: zod_1.z.string().optional(),
+    position: zod_1.z.object({
+        x: zod_1.z.number(),
+        y: zod_1.z.number()
     }).optional(),
-    size: z.object({
-        width: z.number(),
-        height: z.number()
+    size: zod_1.z.object({
+        width: zod_1.z.number(),
+        height: zod_1.z.number()
     }).optional(),
-    visible: z.boolean().default(true),
-    properties: z.record(z.any()).optional()
+    visible: zod_1.z.boolean().default(true),
+    properties: zod_1.z.record(zod_1.z.any()).optional()
 });
 // 서비스 모델 스키마
-export const serviceModelSchema = z.object({
-    name: z.string().min(1),
-    id: z.string().optional(),
-    serviceType: z.string(),
-    enabled: z.boolean().default(true),
-    properties: z.record(z.any()).optional()
+exports.serviceModelSchema = zod_1.z.object({
+    name: zod_1.z.string().min(1),
+    id: zod_1.z.string().optional(),
+    serviceType: zod_1.z.string(),
+    enabled: zod_1.z.boolean().default(true),
+    properties: zod_1.z.record(zod_1.z.any()).optional()
 });
 /**
  * 모델 데이터 유효성 검사
@@ -46,34 +49,35 @@ export const serviceModelSchema = z.object({
  * @param modelType 모델 타입
  * @returns 검증 결과 (성공, 오류)
  */
-export function validateModelData(data, modelType) {
+function validateModelData(data, modelType) {
     try {
         switch (modelType) {
             case 'script':
-                return { success: true, data: scriptModelSchema.parse(data) };
+                return { success: true, data: exports.scriptModelSchema.parse(data) };
             case 'ui':
-                return { success: true, data: uiModelSchema.parse(data) };
+                return { success: true, data: exports.uiModelSchema.parse(data) };
             case 'service':
-                return { success: true, data: serviceModelSchema.parse(data) };
+                return { success: true, data: exports.serviceModelSchema.parse(data) };
             default:
                 return { success: false, errors: 'Unknown model type' };
         }
     }
     catch (error) {
-        logger.warn(`Model validation failed: ${error instanceof Error ? error.message : String(error)}`);
-        if (error instanceof z.ZodError) {
+        logger_js_1.logger.warn(`Model validation failed: ${error instanceof Error ? error.message : String(error)}`);
+        if (error instanceof zod_1.z.ZodError) {
             return { success: false, errors: error.format() };
         }
         return { success: false, errors: 'Validation error' };
     }
 }
+exports.validateModelData = validateModelData;
 /**
  * 모델 업데이트 시 필드 유효성 검사
  * @param updates 업데이트할 필드
  * @param modelType 모델 타입
  * @returns 검증 결과 (성공, 오류, 정제된 데이터)
  */
-export function validateModelUpdates(updates, modelType) {
+function validateModelUpdates(updates, modelType) {
     try {
         // 필드별로 부분 검증
         const schema = getSchemaForModelType(modelType);
@@ -87,7 +91,7 @@ export function validateModelUpdates(updates, modelType) {
                     validatedUpdates[key] = fieldSchema.parse(value);
                 }
                 catch (fieldError) {
-                    if (fieldError instanceof z.ZodError) {
+                    if (fieldError instanceof zod_1.z.ZodError) {
                         errors[key] = fieldError.format();
                     }
                     else {
@@ -109,19 +113,20 @@ export function validateModelUpdates(updates, modelType) {
         return { success: true, data: validatedUpdates };
     }
     catch (error) {
-        logger.warn(`Model update validation failed: ${error instanceof Error ? error.message : String(error)}`);
+        logger_js_1.logger.warn(`Model update validation failed: ${error instanceof Error ? error.message : String(error)}`);
         return { success: false, errors: 'Validation error' };
     }
 }
+exports.validateModelUpdates = validateModelUpdates;
 // 모델 타입에 맞는 스키마 가져오기
 function getSchemaForModelType(modelType) {
     switch (modelType) {
         case 'script':
-            return scriptModelSchema;
+            return exports.scriptModelSchema;
         case 'ui':
-            return uiModelSchema;
+            return exports.uiModelSchema;
         case 'service':
-            return serviceModelSchema;
+            return exports.serviceModelSchema;
         default:
             throw new Error('Unknown model type');
     }

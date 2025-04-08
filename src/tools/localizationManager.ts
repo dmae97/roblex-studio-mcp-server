@@ -1,9 +1,10 @@
-import { Tool } from '@modelcontextprotocol/sdk';
+// import { Tool } from '@modelcontextprotocol/sdk/server/mcp.js'; // Assuming Tool is exported from here, adjust if needed
+// Temporarily remove type annotation if Tool type path is incorrect
 import NodeCache from 'node-cache';
 
 const localizationCache = new NodeCache({ stdTTL: 3600 });
 
-export const localizationManager: Tool = {
+export const localizationManager /*: Tool*/ = {
   name: 'manage-localization',
   description: '게임 텍스트 및 콘텐츠 지역화 관리',
   parameters: {
@@ -36,7 +37,7 @@ export const localizationManager: Tool = {
       }
     }
   },
-  execute: async (params) => {
+  execute: async (params: any) => { // TODO: Define a proper interface for params based on the schema
     try {
       console.log(`Executing localization action: ${params.action}`);
       const cacheKey = `localization_${params.gameId}_${params.action}`;
@@ -91,7 +92,7 @@ export const localizationManager: Tool = {
           result = { 
             success: true, 
             translatedEntries: 42,
-            languages: params.targetLanguages.map(lang => ({
+            languages: params.targetLanguages.map((lang: any) => ({ // TODO: Define proper type for lang
               code: lang,
               translatedCount: 42,
               status: 'completed'
@@ -131,7 +132,8 @@ export const localizationManager: Tool = {
       return result;
     } catch (error) {
       console.error('Error in localization manager:', error);
-      throw new Error(`Localization operation failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Localization operation failed: ${errorMessage}`);
     }
   }
 };

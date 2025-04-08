@@ -1,11 +1,14 @@
+"use strict";
 /**
  * Error handling and recovery utilities
  */
-import { logger } from './logger.js';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CircuitBreaker = exports.createRateLimiter = exports.withTimeout = exports.retry = exports.safeStringify = exports.errorHandlerMiddleware = exports.formatErrorResponse = exports.DatastoreError = exports.RateLimitError = exports.ConflictError = exports.NotFoundError = exports.AuthorizationError = exports.AuthenticationError = exports.ValidationError = exports.McpError = void 0;
+const logger_js_1 = require("./logger.js");
 /**
  * Custom error types
  */
-export class McpError extends Error {
+class McpError extends Error {
     statusCode;
     code;
     details;
@@ -19,46 +22,61 @@ export class McpError extends Error {
         Object.setPrototypeOf(this, McpError.prototype);
     }
 }
-export class ValidationError extends McpError {
+exports.McpError = McpError;
+class ValidationError extends McpError {
     constructor(message, details) {
         super(message, 400, 'VALIDATION_ERROR', details);
         Object.setPrototypeOf(this, ValidationError.prototype);
     }
 }
-export class AuthenticationError extends McpError {
+exports.ValidationError = ValidationError;
+class AuthenticationError extends McpError {
     constructor(message, details) {
         super(message, 401, 'AUTHENTICATION_ERROR', details);
         Object.setPrototypeOf(this, AuthenticationError.prototype);
     }
 }
-export class AuthorizationError extends McpError {
+exports.AuthenticationError = AuthenticationError;
+class AuthorizationError extends McpError {
     constructor(message, details) {
         super(message, 403, 'AUTHORIZATION_ERROR', details);
         Object.setPrototypeOf(this, AuthorizationError.prototype);
     }
 }
-export class NotFoundError extends McpError {
+exports.AuthorizationError = AuthorizationError;
+class NotFoundError extends McpError {
     constructor(message, details) {
         super(message, 404, 'NOT_FOUND', details);
         Object.setPrototypeOf(this, NotFoundError.prototype);
     }
 }
-export class ConflictError extends McpError {
+exports.NotFoundError = NotFoundError;
+class ConflictError extends McpError {
     constructor(message, details) {
         super(message, 409, 'CONFLICT', details);
         Object.setPrototypeOf(this, ConflictError.prototype);
     }
 }
-export class RateLimitError extends McpError {
+exports.ConflictError = ConflictError;
+class RateLimitError extends McpError {
     constructor(message, details) {
         super(message, 429, 'RATE_LIMIT', details);
         Object.setPrototypeOf(this, RateLimitError.prototype);
     }
 }
+exports.RateLimitError = RateLimitError;
+// Add a specific error class for datastore issues
+class DatastoreError extends McpError {
+    constructor(message = 'Datastore operation failed', details) {
+        super(message, 500, 'DATASTORE_ERROR', details);
+        Object.setPrototypeOf(this, DatastoreError.prototype);
+    }
+}
+exports.DatastoreError = DatastoreError;
 /**
  * Format an error response for API endpoints
  */
-export function formatErrorResponse(error) {
+function formatErrorResponse(error) {
     if (error instanceof McpError) {
         return {
             error: {
@@ -70,9 +88,9 @@ export function formatErrorResponse(error) {
         };
     }
     // For non-McpError errors, return a generic internal error
-    logger.error(`Unhandled error: ${error instanceof Error ? error.message : String(error)}`);
+    logger_js_1.logger.error(`Unhandled error: ${error instanceof Error ? error.message : String(error)}`);
     if (error instanceof Error && error.stack) {
-        logger.debug(error.stack);
+        logger_js_1.logger.debug(error.stack);
     }
     return {
         error: {
@@ -82,19 +100,21 @@ export function formatErrorResponse(error) {
         statusCode: 500
     };
 }
+exports.formatErrorResponse = formatErrorResponse;
 /**
  * Express error handler middleware
  */
-export function errorHandlerMiddleware(err, req, res, next) {
+function errorHandlerMiddleware(err, req, res, next) {
     const errorResponse = formatErrorResponse(err);
     res.status(errorResponse.statusCode).json({
         error: errorResponse.error
     });
 }
+exports.errorHandlerMiddleware = errorHandlerMiddleware;
 /**
  * Safely stringify an object, handling circular references
  */
-export function safeStringify(obj, indent = 2) {
+function safeStringify(obj, indent = 2) {
     const seen = new WeakSet();
     return JSON.stringify(obj, (key, value) => {
         if (typeof value === 'object' && value !== null) {
@@ -106,10 +126,11 @@ export function safeStringify(obj, indent = 2) {
         return value;
     }, indent);
 }
+exports.safeStringify = safeStringify;
 /**
  * Retry a function with exponential backoff
  */
-export async function retry(fn, options = {}) {
+async function retry(fn, options = {}) {
     const { maxRetries = 3, initialDelay = 1000, maxDelay = 30000, factor = 2, shouldRetry = () => true, onRetry } = options;
     let attempt = 0;
     while (true) {
@@ -126,16 +147,17 @@ export async function retry(fn, options = {}) {
                 onRetry(error, attempt, delay);
             }
             else {
-                logger.warn(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms: ${error instanceof Error ? error.message : String(error)}`);
+                logger_js_1.logger.warn(`Retry attempt ${attempt}/${maxRetries} after ${delay}ms: ${error instanceof Error ? error.message : String(error)}`);
             }
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
 }
+exports.retry = retry;
 /**
  * Wrap an async function with a timeout
  */
-export function withTimeout(fn, timeoutMs, timeoutMessage = 'Operation timed out') {
+function withTimeout(fn, timeoutMs, timeoutMessage = 'Operation timed out') {
     return new Promise((resolve, reject) => {
         const timeoutId = setTimeout(() => {
             reject(new McpError(timeoutMessage, 408, 'TIMEOUT'));
@@ -149,10 +171,11 @@ export function withTimeout(fn, timeoutMs, timeoutMessage = 'Operation timed out
         });
     });
 }
+exports.withTimeout = withTimeout;
 /**
  * Create a rate limiter
  */
-export function createRateLimiter(options = {}) {
+function createRateLimiter(options = {}) {
     const { windowMs = 60 * 1000, // 1 minute
     maxRequests = 100, // 100 requests per minute
     message = 'Too many requests, please try again later' } = options;
@@ -180,10 +203,11 @@ export function createRateLimiter(options = {}) {
         }
     };
 }
+exports.createRateLimiter = createRateLimiter;
 /**
  * Circuit breaker pattern implementation
  */
-export class CircuitBreaker {
+class CircuitBreaker {
     state = 'CLOSED';
     failureCount = 0;
     successCount = 0;
@@ -203,7 +227,7 @@ export class CircuitBreaker {
         if (this.state === 'OPEN') {
             if (Date.now() > this.lastFailureTime + this.resetTimeout) {
                 this.state = 'HALF_OPEN';
-                logger.info('Circuit breaker state changed from OPEN to HALF_OPEN');
+                logger_js_1.logger.info('Circuit breaker state changed from OPEN to HALF_OPEN');
             }
             else if (fallback) {
                 return fallback();
@@ -235,7 +259,7 @@ export class CircuitBreaker {
                 this.successCount = 0;
                 this.failureCount = 0;
                 this.state = 'CLOSED';
-                logger.info('Circuit breaker state changed from HALF_OPEN to CLOSED');
+                logger_js_1.logger.info('Circuit breaker state changed from HALF_OPEN to CLOSED');
             }
         }
         else {
@@ -252,7 +276,7 @@ export class CircuitBreaker {
             this.state === 'HALF_OPEN') {
             this.state = 'OPEN';
             this.successCount = 0;
-            logger.warn(`Circuit breaker state changed to OPEN (failures: ${this.failureCount})`);
+            logger_js_1.logger.warn(`Circuit breaker state changed to OPEN (failures: ${this.failureCount})`);
         }
     }
     /**
@@ -268,7 +292,8 @@ export class CircuitBreaker {
         this.state = 'CLOSED';
         this.failureCount = 0;
         this.successCount = 0;
-        logger.info('Circuit breaker has been manually reset to CLOSED');
+        logger_js_1.logger.info('Circuit breaker has been manually reset to CLOSED');
     }
 }
+exports.CircuitBreaker = CircuitBreaker;
 //# sourceMappingURL=errorHandler.js.map

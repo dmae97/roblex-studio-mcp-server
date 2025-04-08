@@ -1,12 +1,15 @@
-import { BaseModel } from './BaseModel.js';
-import { logger } from '../utils/logger.js';
-import { validateModelData, validateModelUpdates } from './validation.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RoblexStudioServiceModel = exports.RoblexStudioUIModel = exports.RoblexStudioScriptModel = exports.RoblexStudioBaseModel = void 0;
+const BaseModel_js_1 = require("./BaseModel.js");
+const logger_js_1 = require("../utils/logger.js");
+const validation_js_1 = require("./validation.js");
 /**
  * Roblox Studio 모델 클래스
  * 스크립트, UI, 서비스 등 Roblox Studio의 다양한 요소를 표현합니다.
  */
 // 베이스 Roblox Studio 모델 클래스 - 다른 클래스의 기본 클래스로 사용
-export class RoblexStudioBaseModel extends BaseModel {
+class RoblexStudioBaseModel extends BaseModel_js_1.BaseModel {
     constructor(id, initialState) {
         super(id);
         // 기본 상태 설정
@@ -42,7 +45,7 @@ export class RoblexStudioBaseModel extends BaseModel {
         }
         // 단일 필드 업데이트 유효성 검사
         const update = { [key]: value };
-        const validation = validateModelUpdates(update, modelType);
+        const validation = (0, validation_js_1.validateModelUpdates)(update, modelType);
         if (validation.success && validation.data) {
             // 검증 통과, 값 설정
             super.setValue(key, value);
@@ -51,7 +54,7 @@ export class RoblexStudioBaseModel extends BaseModel {
         }
         else {
             // 검증 실패, 오류 로깅
-            logger.warn(`Invalid value for ${this.id}.${key}`, { errors: validation.errors });
+            logger_js_1.logger.warn(`Invalid value for ${this.id}.${key}`, { errors: validation.errors });
             throw new Error(`Invalid value for ${key}: ${JSON.stringify(validation.errors)}`);
         }
     }
@@ -67,7 +70,7 @@ export class RoblexStudioBaseModel extends BaseModel {
         // modified, created 필드 분리 (자동 관리 필드)
         const { modified, created, ...otherValues } = values;
         // 유효성 검사 실행
-        const validation = validateModelUpdates(otherValues, modelType);
+        const validation = (0, validation_js_1.validateModelUpdates)(otherValues, modelType);
         if (validation.success && validation.data) {
             // 검증 통과, 값 설정
             super.setValues(validation.data);
@@ -76,7 +79,7 @@ export class RoblexStudioBaseModel extends BaseModel {
         }
         else {
             // 검증 실패, 오류 로깅
-            logger.warn(`Invalid values for ${this.id}`, { errors: validation.errors });
+            logger_js_1.logger.warn(`Invalid values for ${this.id}`, { errors: validation.errors });
             throw new Error(`Invalid values: ${JSON.stringify(validation.errors)}`);
         }
     }
@@ -85,10 +88,11 @@ export class RoblexStudioBaseModel extends BaseModel {
         return super.getValue(key, defaultValue);
     }
 }
+exports.RoblexStudioBaseModel = RoblexStudioBaseModel;
 /**
  * Specialized model for Roblox Studio script objects
  */
-export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
+class RoblexStudioScriptModel extends RoblexStudioBaseModel {
     /**
      * Create a new Roblox Studio script model
      * @param id Script ID (usually the name)
@@ -110,15 +114,15 @@ export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
             ...initialState
         };
         // 초기 상태 유효성 검사 후 설정
-        const validation = validateModelData(scriptState, 'script');
+        const validation = (0, validation_js_1.validateModelData)(scriptState, 'script');
         if (validation.success && validation.data) {
             super.setValues(validation.data);
         }
         else {
-            logger.warn(`Invalid initial state for script ${id}`, { errors: validation.errors });
+            logger_js_1.logger.warn(`Invalid initial state for script ${id}`, { errors: validation.errors });
             throw new Error(`Invalid initial state for script: ${JSON.stringify(validation.errors)}`);
         }
-        logger.debug(`Roblox Studio script model created: ${id}`);
+        logger_js_1.logger.debug(`Roblox Studio script model created: ${id}`);
     }
     /**
      * Get the script source code
@@ -147,7 +151,7 @@ export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
      */
     setScriptType(scriptType) {
         if (!['Script', 'LocalScript', 'ModuleScript'].includes(scriptType)) {
-            logger.warn(`Invalid script type: ${scriptType}, using 'Script' instead`);
+            logger_js_1.logger.warn(`Invalid script type: ${scriptType}, using 'Script' instead`);
             scriptType = 'Script';
         }
         this.setValue('scriptType', scriptType);
@@ -165,7 +169,7 @@ export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
      */
     setRunContext(runContext) {
         if (!['Server', 'Client', 'Legacy'].includes(runContext)) {
-            logger.warn(`Invalid run context: ${runContext}, using 'Server' instead`);
+            logger_js_1.logger.warn(`Invalid run context: ${runContext}, using 'Server' instead`);
             runContext = 'Server';
         }
         this.setValue('runContext', runContext);
@@ -199,10 +203,11 @@ export class RoblexStudioScriptModel extends RoblexStudioBaseModel {
         this.setValue('parent', parent);
     }
 }
+exports.RoblexStudioScriptModel = RoblexStudioScriptModel;
 /**
  * Specialized model for Roblox Studio UI objects
  */
-export class RoblexStudioUIModel extends RoblexStudioBaseModel {
+class RoblexStudioUIModel extends RoblexStudioBaseModel {
     /**
      * Create a new Roblox Studio UI model
      * @param id UI element ID (usually the name)
@@ -227,15 +232,15 @@ export class RoblexStudioUIModel extends RoblexStudioBaseModel {
             ...initialState
         };
         // 초기 상태 유효성 검사 후 설정
-        const validation = validateModelData(uiState, 'ui');
+        const validation = (0, validation_js_1.validateModelData)(uiState, 'ui');
         if (validation.success && validation.data) {
             super.setValues(validation.data);
         }
         else {
-            logger.warn(`Invalid initial state for UI element ${id}`, { errors: validation.errors });
+            logger_js_1.logger.warn(`Invalid initial state for UI element ${id}`, { errors: validation.errors });
             throw new Error(`Invalid initial state for UI: ${JSON.stringify(validation.errors)}`);
         }
-        logger.debug(`Roblox Studio UI model created: ${id}`);
+        logger_js_1.logger.debug(`Roblox Studio UI model created: ${id}`);
     }
     /**
      * Get the UI class name
@@ -365,10 +370,11 @@ export class RoblexStudioUIModel extends RoblexStudioBaseModel {
         this.setValue('children', children.filter(child => child !== childName));
     }
 }
+exports.RoblexStudioUIModel = RoblexStudioUIModel;
 /**
  * Specialized model for Roblox Studio service objects
  */
-export class RoblexStudioServiceModel extends RoblexStudioBaseModel {
+class RoblexStudioServiceModel extends RoblexStudioBaseModel {
     /**
      * Create a new Roblox Studio service model
      * @param id Service ID (usually the name)
@@ -385,15 +391,15 @@ export class RoblexStudioServiceModel extends RoblexStudioBaseModel {
             ...initialState
         };
         // 초기 상태 유효성 검사 후 설정
-        const validation = validateModelData(serviceState, 'service');
+        const validation = (0, validation_js_1.validateModelData)(serviceState, 'service');
         if (validation.success && validation.data) {
             super.setValues(validation.data);
         }
         else {
-            logger.warn(`Invalid initial state for service ${id}`, { errors: validation.errors });
+            logger_js_1.logger.warn(`Invalid initial state for service ${id}`, { errors: validation.errors });
             throw new Error(`Invalid initial state for service: ${JSON.stringify(validation.errors)}`);
         }
-        logger.debug(`Roblox Studio service model created: ${id}`);
+        logger_js_1.logger.debug(`Roblox Studio service model created: ${id}`);
     }
     /**
      * Get the service name
@@ -440,4 +446,5 @@ export class RoblexStudioServiceModel extends RoblexStudioBaseModel {
         this.setValue('children', children.filter(child => child !== childName));
     }
 }
+exports.RoblexStudioServiceModel = RoblexStudioServiceModel;
 //# sourceMappingURL=RoblexStudioModels.js.map

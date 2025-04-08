@@ -1,18 +1,20 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { McpServer } from './server/McpServer.js';
-import { SSEServerTransport } from './server/SSEServerTransport.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { McpError } from '@modelcontextprotocol/sdk/types';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import dotenv from 'dotenv';
 import http from 'http';
-import { roblexTools } from './tools/index.js';
-import { roblexResources } from './resources/index.js';
-import { roblexPrompts } from './prompts/index.js';
-import { logger } from './utils/logger.js';
-import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './models/index.js';
-import * as auth from './utils/auth.js';
-import * as sync from './utils/sync.js';
-import { errorHandlerMiddleware, NotFoundError } from './utils/errorHandler.js';
+import { logger } from './utils/logger';
+import { apiKeyAuth } from './utils/auth';
+import * as sync from './utils/sync';
+import { errorHandlerMiddleware, NotFoundError } from './utils/errorHandler';
+import { roblexTools } from './tools/index';
+import { roblexResources } from './resources/index';
+import { roblexPrompts } from './prompts/index';
+import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './models/index';
+import * as auth from './utils/auth';
 
 // Load environment variables
 dotenv.config();
@@ -21,7 +23,7 @@ dotenv.config();
 auth.init();
 
 // Server configuration
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT || 3001);
 const SERVER_NAME = process.env.SERVER_NAME || 'Roblex Studio MCP Server';
 const SERVER_VERSION = process.env.SERVER_VERSION || '1.0.0';
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
@@ -60,7 +62,7 @@ const transports: { [sessionId: string]: SSEServerTransport } = {};
 const studioAdapters: { [sessionId: string]: ReturnType<typeof roblexStudioAdapterFactory> } = {};
 
 // Authentication middleware for protected routes
-const authMiddleware = REQUIRE_AUTH ? auth.apiKeyAuth : (req: express.Request, res: express.Response, next: express.NextFunction) => next();
+const authMiddleware = REQUIRE_AUTH ? apiKeyAuth : (req: express.Request, res: express.Response, next: express.NextFunction) => next();
 
 // Login endpoint
 app.post('/auth/login', async (req, res) => {
@@ -288,7 +290,10 @@ securedRouter.get('/models/:modelId', (req, res) => {
 });
 
 // Initialize WebSocket synchronization system
-sync.init(httpServer, '/sync');
+// WebSocket 동기화 시스템 비활성화 (포트 충돌 문제 해결)
+// sync.init(httpServer, '/sync');
+// 대신 로그 메시지만 출력
+logger.info('WebSocket synchronization system was disabled to prevent port conflicts');
 
 // Add 404 handler for non-existing routes
 app.use((req, res, next) => {
@@ -302,7 +307,8 @@ app.use(errorHandlerMiddleware);
 httpServer.listen(PORT, () => {
   logger.info(`${SERVER_NAME} v${SERVER_VERSION} started on port ${PORT}`);
   logger.info(`SSE endpoint: http://localhost:${PORT}/sse`);
-  logger.info(`WebSocket sync endpoint: ws://localhost:${PORT}/sync`);
+  // WebSocket 동기화 엔드포인트 메시지 제거
+  // logger.info(`WebSocket sync endpoint: ws://localhost:${PORT}/sync`);
 });
 
 // Graceful shutdown handler

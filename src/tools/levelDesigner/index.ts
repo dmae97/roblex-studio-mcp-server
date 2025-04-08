@@ -6,84 +6,110 @@ import { generateEnvironmentCode } from './environmentGenerator.js';
 import { levelDesignSchema, terrainSchema, environmentSchema } from './schemas.js';
 
 /**
- * Level Designer Tool for Roblox Studio
+ * Roblox Studio용 레벨 디자이너 도구
  * 
- * Provides tools to generate level layouts, terrain designs, and game environments
+ * 레벨 레이아웃, 지형 디자인, 게임 환경을 생성하는 도구 제공
  */
 export const levelDesigner = {
   register: (server: McpServer) => {
-    // Create Level Layout
-    server.registerTool(
+    // 레벨 레이아웃 생성
+    (server as any).tool(
       'create-level-layout',
-      {
-        description: 'Creates a level layout for different game types in Roblox',
-        parameters: levelDesignSchema,
-      },
-      async (params) => {
+      levelDesignSchema,
+      async (params: any) => {
         logger.info(`Creating level layout of type: ${params.levelType}`);
         
         try {
           const layoutCode = generateLevelCode(params);
           
           return {
-            levelCode: layoutCode,
-            setupInstructions: generateSetupInstructions(params),
-            bestPractices: generateBestPractices(params.levelType),
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                levelCode: layoutCode,
+                setupInstructions: generateSetupInstructions(params),
+                bestPractices: generateBestPractices(params.levelType),
+              }, null, 2)
+            }]
           };
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Error creating level layout:', error);
-          throw new Error(`Failed to create level layout: ${error.message}`);
+          return {
+            content: [{
+              type: 'text',
+              text: `Failed to create level layout: ${error.message}`
+            }],
+            isError: true
+          };
         }
       }
     );
     
-    // Generate Terrain
-    server.registerTool(
+    // 지형 생성
+    (server as any).tool(
       'generate-terrain',
-      {
-        description: 'Generates terrain configurations for Roblox games',
-        parameters: terrainSchema,
-      },
-      async (params) => {
+      terrainSchema,
+      async (params: any) => {
         logger.info(`Generating ${params.terrainType} terrain`);
         
         try {
           const terrainCode = generateTerrainCode(params);
           
           return {
-            terrainCode: terrainCode,
-            heightMap: generateHeightMapDescription(params),
-            setupInstructions: generateTerrainInstructions(params)
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                terrainCode: terrainCode,
+                heightMap: generateHeightMapDescription(params),
+                setupInstructions: generateTerrainInstructions(params)
+              }, null, 2)
+            }]
           };
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Error generating terrain:', error);
-          throw new Error(`Failed to generate terrain: ${error.message}`);
+          return {
+            content: [{
+              type: 'text',
+              text: `Failed to generate terrain: ${error.message}`
+            }],
+            isError: true
+          };
         }
       }
     );
     
-    // Create Environment Settings
-    server.registerTool(
+    // 환경 설정 생성
+    (server as any).tool(
       'create-environment-settings',
-      {
-        description: 'Creates environment settings including lighting, atmosphere, and sound',
-        parameters: environmentSchema,
-      },
-      async (params) => {
+      environmentSchema,
+      async (params: any) => {
         logger.info('Creating environment settings');
         
         try {
           const environmentCode = generateEnvironmentCode(params);
           
           return {
-            environmentCode: environmentCode,
-            setupInstructions: 'Place the script in ServerScriptService and run the game to apply these environment settings.'
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                environmentCode: environmentCode,
+                setupInstructions: 'Place the script in ServerScriptService and run the game to apply these environment settings.'
+              }, null, 2)
+            }]
           };
-        } catch (error) {
+        } catch (error: any) {
           logger.error('Error creating environment settings:', error);
-          throw new Error(`Failed to create environment settings: ${error.message}`);
+          return {
+            content: [{
+              type: 'text',
+              text: `Failed to create environment settings: ${error.message}`
+            }],
+            isError: true
+          };
         }
       }
     );
+
+    logger.info('레벨 디자이너 도구가 등록되었습니다.');
   }
 };

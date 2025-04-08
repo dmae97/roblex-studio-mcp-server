@@ -66,6 +66,14 @@ export class RateLimitError extends McpError {
   }
 }
 
+// Add a specific error class for datastore issues
+export class DatastoreError extends McpError {
+  constructor(message: string = 'Datastore operation failed', details?: any) {
+    super(message, 500, 'DATASTORE_ERROR', details);
+    Object.setPrototypeOf(this, DatastoreError.prototype);
+  }
+}
+
 /**
  * Format an error response for API endpoints
  */

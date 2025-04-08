@@ -1,14 +1,17 @@
+"use strict";
 /**
  * Simple logging utility for Roblex Studio MCP Server
  */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.requestLogger = exports.logServerShutdown = exports.logServerStart = exports.createSessionLogger = exports.createModelLogger = exports.studioLogger = exports.logger = exports.setLogLevel = exports.LogLevel = void 0;
 // 로그 레벨 enum
-export var LogLevel;
+var LogLevel;
 (function (LogLevel) {
     LogLevel["DEBUG"] = "debug";
     LogLevel["INFO"] = "info";
     LogLevel["WARN"] = "warn";
     LogLevel["ERROR"] = "error";
-})(LogLevel || (LogLevel = {}));
+})(LogLevel || (exports.LogLevel = LogLevel = {}));
 // 로그 레벨에 따른 우선순위 (낮을수록 더 많은 로그)
 const LOG_PRIORITIES = {
     [LogLevel.DEBUG]: 0,
@@ -46,16 +49,15 @@ function log(level, message, meta) {
     if (LOG_PRIORITIES[level] < currentLogPriority) {
         return;
     }
-    const timestamp = getTimestamp();
     const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
-    // 콘솔에 로그 출력 (색상 적용)
-    console.log(`${COLORS.timestamp}[${timestamp}]${COLORS.reset} ${COLORS[level]}[${level.toUpperCase()}]${COLORS.reset} ${message}${metaStr}`);
+    // 표준 에러(stderr)로 로그 출력 (타임스탬프, 레벨, 색상 제거)
+    console.error(`${message}${metaStr}`);
 }
 /**
  * 로그 레벨 변경
  * @param level 새 로그 레벨
  */
-export function setLogLevel(level) {
+function setLogLevel(level) {
     if (LOG_PRIORITIES[level] !== undefined) {
         currentLogPriority = LOG_PRIORITIES[level];
         log(LogLevel.INFO, `Log level changed to: ${level}`);
@@ -64,10 +66,11 @@ export function setLogLevel(level) {
         log(LogLevel.ERROR, `Invalid log level: ${level}`);
     }
 }
+exports.setLogLevel = setLogLevel;
 /**
  * 기본 로거
  */
-export const logger = {
+exports.logger = {
     debug(message, meta) {
         log(LogLevel.DEBUG, message, meta);
     },
@@ -84,7 +87,7 @@ export const logger = {
 /**
  * Roblox Studio 전용 로거
  */
-export const studioLogger = {
+exports.studioLogger = {
     debug(message, meta) {
         log(LogLevel.DEBUG, message, { ...meta, context: 'studio' });
     },
@@ -101,7 +104,7 @@ export const studioLogger = {
 /**
  * 모델 전용 로거 생성
  */
-export function createModelLogger(modelType, modelId) {
+function createModelLogger(modelType, modelId) {
     return {
         debug(message, meta) {
             log(LogLevel.DEBUG, message, { ...meta, modelType, modelId, context: 'model' });
@@ -117,10 +120,11 @@ export function createModelLogger(modelType, modelId) {
         }
     };
 }
+exports.createModelLogger = createModelLogger;
 /**
  * 세션 전용 로거 생성
  */
-export function createSessionLogger(sessionId, studioId) {
+function createSessionLogger(sessionId, studioId) {
     return {
         debug(message, meta) {
             log(LogLevel.DEBUG, message, { ...meta, sessionId, studioId, context: 'session' });
@@ -136,27 +140,30 @@ export function createSessionLogger(sessionId, studioId) {
         }
     };
 }
+exports.createSessionLogger = createSessionLogger;
 /**
  * 서버 시작 로깅
  */
-export function logServerStart() {
-    logger.info('Server starting up');
+function logServerStart() {
+    exports.logger.info('Server starting up');
 }
+exports.logServerStart = logServerStart;
 /**
  * 서버 종료 로깅
  */
-export function logServerShutdown() {
-    logger.info('Server shutting down');
+function logServerShutdown() {
+    exports.logger.info('Server shutting down');
 }
+exports.logServerShutdown = logServerShutdown;
 /**
  * API 요청 로깅을 위한 Express 미들웨어
  */
-export function requestLogger(req, res, next) {
+function requestLogger(req, res, next) {
     const start = Date.now();
     // 응답 완료 후 로깅
     res.on('finish', () => {
         const duration = Date.now() - start;
-        logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`, {
+        exports.logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`, {
             method: req.method,
             url: req.originalUrl,
             status: res.statusCode,
@@ -167,4 +174,5 @@ export function requestLogger(req, res, next) {
     });
     next();
 }
+exports.requestLogger = requestLogger;
 //# sourceMappingURL=logger.js.map

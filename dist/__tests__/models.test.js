@@ -1,12 +1,14 @@
+"use strict";
 /**
  * Unit tests for RoblexModel
  */
-import { RoblexModel } from '../models/RoblexModel.js';
-import { EventEmitter } from 'events';
+Object.defineProperty(exports, "__esModule", { value: true });
+const RoblexModel_js_1 = require("../models/RoblexModel.js");
+const events_1 = require("events");
 describe('RoblexModel', () => {
     let model;
     beforeEach(() => {
-        model = new RoblexModel('test-model');
+        model = new RoblexModel_js_1.RoblexModel('test-model');
     });
     test('should create a new model with the given name', () => {
         expect(model.name).toBe('test-model');
@@ -76,7 +78,7 @@ describe('RoblexModel', () => {
         });
     });
     test('should implement EventEmitter interface', () => {
-        expect(model).toBeInstanceOf(EventEmitter);
+        expect(model).toBeInstanceOf(events_1.EventEmitter);
         const listener = jest.fn();
         model.on('custom-event', listener);
         model.emit('custom-event', 'test-data');

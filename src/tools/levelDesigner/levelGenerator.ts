@@ -1,18 +1,18 @@
 import { capitalizeFirstLetter } from './utils.js';
 
 // Level type specific generators
-import { generatePlatformerCode } from './levelTypes/platformer.js';
-import { generateMazeCode } from './levelTypes/maze.js';
-import { generateOpenWorldCode } from './levelTypes/openWorld.js';
-import { generateTowerDefenseCode } from './levelTypes/towerDefense.js';
-import { generateObstacleCourseCode } from './levelTypes/obstacleCourse.js';
-import { generateRacingCode } from './levelTypes/racing.js';
-import { generateCustomLevelCode } from './levelTypes/custom.js';
+// import { generatePlatformerCode } from './levelTypes/platformer';
+// import { generateMazeCode } from './levelTypes/maze';
+// import { generateOpenWorldCode } from './levelTypes/openWorld';
+// import { generateTowerDefenseCode } from './levelTypes/towerDefense';
+// import { generateObstacleCourseCode } from './levelTypes/obstacleCourse';
+// import { generateRacingCode } from './levelTypes/racing';
+// import { generateCustomLevelCode } from './levelTypes/custom';
 
 /**
  * Generates Lua code for level layout
  */
-export function generateLevelCode(params) {
+export function generateLevelCode(params: any): string { // TODO: Define proper type for params
   const { levelType, size, includePlayerSpawns, includeCheckpoints } = params;
   
   let code = `-- ${levelType.charAt(0).toUpperCase() + levelType.slice(1)} Level Generator
@@ -31,28 +31,30 @@ local function Create${capitalizeFirstLetter(levelType)}Level()
 `;
 
   // Add level specific code based on level type
-  switch (levelType) {
-    case 'platformer':
-      code += generatePlatformerCode(size);
-      break;
-    case 'maze':
-      code += generateMazeCode(size);
-      break;
-    case 'open-world':
-      code += generateOpenWorldCode(size);
-      break;
-    case 'tower-defense':
-      code += generateTowerDefenseCode(size);
-      break;
-    case 'obstacle-course':
-      code += generateObstacleCourseCode(size);
-      break;
-    case 'racing':
-      code += generateRacingCode(size);
-      break;
-    default:
-      code += generateCustomLevelCode(size);
-  }
+  // switch (levelType) {
+  //   case 'platformer':
+  //     // code += generatePlatformerCode(size); // Not implemented
+  //     break;
+  //   case 'maze':
+  //     // code += generateMazeCode(size); // Not implemented
+  //     break;
+  //   case 'open-world':
+  //     // code += generateOpenWorldCode(size); // Not implemented
+  //     break;
+  //   case 'tower-defense':
+  //     // code += generateTowerDefenseCode(size); // Not implemented
+  //     break;
+  //   case 'obstacle-course':
+  //     // code += generateObstacleCourseCode(size); // Not implemented
+  //     break;
+  //   case 'racing':
+  //     // code += generateRacingCode(size); // Not implemented
+  //     break;
+  //   default: // Assuming custom or unimplemented types fall here
+  //     // code += generateCustomLevelCode(size); // Not implemented
+  //     code += `\t-- Level type '${levelType}' generation logic is not implemented yet.\n`;
+  // }
+  code += `\t-- Placeholder for ${levelType} specific level elements --\n`;
 
   // Add player spawn points if requested
   if (includePlayerSpawns) {
@@ -107,7 +109,7 @@ local newLevel = Create${capitalizeFirstLetter(levelType)}Level()
 /**
  * Generates setup instructions based on level parameters
  */
-export function generateSetupInstructions(params) {
+export function generateSetupInstructions(params: any): string { // TODO: Define proper type for params
   const { levelType, size } = params;
   
   return `
@@ -118,13 +120,12 @@ export function generateSetupInstructions(params) {
 3. Run the game to generate the level
 4. The level will be created as a Folder named "${capitalizeFirstLetter(levelType)}Level" in Workspace
 5. You can modify the generated level structure after creation
+    *   (Placeholder for ${params.levelType} specific setup)
 
 ### Structure Overview:
 - Main level folder contains all elements
 - Structure subfolder contains terrain and level geometry
-- ${params.includePlayerSpawns ? '- PlayerSpawns subfolder contains spawn locations' : ''}
-- ${params.includeCheckpoints ? '- Checkpoints subfolder contains checkpoint markers' : ''}
-
+${params.includePlayerSpawns ? '- PlayerSpawns subfolder contains spawn locations\n' : ''}${params.includeCheckpoints ? '- Checkpoints subfolder contains checkpoint markers\n' : ''}
 ### Level Size: ${size}
 This affects the overall scale of the generated level.
 `;
@@ -133,51 +134,25 @@ This affects the overall scale of the generated level.
 /**
  * Generates best practices for the given level type
  */
-export function generateBestPractices(levelType) {
-  switch (levelType) {
-    case 'platformer':
-      return `
-## Platformer Level Best Practices
+export function generateBestPractices(levelType: any): string { // TODO: Define proper type for levelType
+  let practices = `## ${capitalizeFirstLetter(levelType)} Level Best Practices\n\n`;
+  practices += `1. Test gameplay flow to ensure a good player experience.\n`;
+  practices += `2. Balance difficulty progression throughout the level.\n`;
+  practices += `3. Consider performance implications of complex geometry.\n`;
+  practices += `4. Add visual guides to help players understand the level.\n`;
+  practices += `5. Include checkpoints at appropriate intervals.\n`;
+  practices += `6. Ensure the level follows the theme consistently.\n`;
 
-1. Ensure platforms are spaced appropriately for jump distances
-2. Add variety in platform heights and sizes
-3. Include collectibles along challenging paths
-4. Add visual indicators for jumps that are close to a player's maximum range
-5. Consider adding moving platforms for advanced sections
-6. Test jump sequences to ensure they're possible for the target player skill level
-`;
-    case 'maze':
-      return `
-## Maze Level Best Practices
-
-1. Include landmarks to help players navigate
-2. Consider adding a minimap for larger mazes
-3. Balance the complexity - too simple is boring, too complex is frustrating
-4. Add optional paths with rewards
-5. Include visual variety to help with navigation
-6. Test that the maze is solvable and there are no unintended shortcuts
-`;
-    case 'open-world':
-      return `
-## Open World Level Best Practices
-
-1. Create distinct regions with unique visual identities
-2. Add points of interest to encourage exploration
-3. Consider level of detail management for performance
-4. Include pathways that guide players to important locations
-5. Add ambient environment elements for immersion
-6. Balance open spaces with detailed areas
-`;
-    default:
-      return `
-## ${capitalizeFirstLetter(levelType)} Level Best Practices
-
-1. Test gameplay flow to ensure a good player experience
-2. Balance difficulty progression throughout the level
-3. Consider performance implications of complex geometry
-4. Add visual guides to help players understand the level
-5. Include checkpoints at appropriate intervals
-6. Ensure the level follows the theme consistently
-`;
-  }
+  // Add level-type-specific best practices here
+  // switch (levelType) {
+  //   case 'platformer':
+  //     practices += "- **Collision Fidelity:** Use appropriate collision fidelity for platforms to balance performance and accuracy.\n";
+  //     practices += "- **Player Experience:** Ensure jump heights and distances feel natural.\n";
+  //     break;
+  //    // ... other cases
+  //   default:
+  //     practices += "- (Placeholder for specific best practices for this level type).\n";
+  // }
+  practices += `\n- (Placeholder for ${levelType} specific best practices)\n`;
+  return practices;
 }

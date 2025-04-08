@@ -36,7 +36,7 @@ export function createMcp(name: string, initialState: ModelState = {}): {
   const context = new RoblexContext(`${name}Context`);
   const protocol = new RoblexProtocol(`${name}Protocol`, context);
   
-  context.registerModel(model);
+  context.registerModel(model as any);
   
   return {
     model,
@@ -74,7 +74,7 @@ export function createGameObjectMcp(
   const context = new RoblexContext(`${objectType}_${objectName}Context`);
   const protocol = new RoblexProtocol(`${objectType}_${objectName}Protocol`, context);
   
-  context.registerModel(model);
+  context.registerModel(model as any);
   
   return {
     model,
@@ -140,7 +140,7 @@ export function createRoblexStudioScriptMcp(
   const context = new RoblexContext(`Script_${scriptName}Context`);
   const protocol = new RoblexProtocol(`Script_${scriptName}Protocol`, context);
   
-  context.registerModel(model);
+  context.registerModel(model as any);
   
   return {
     model,
@@ -175,7 +175,7 @@ export function createRoblexStudioUIMcp(
   const context = new RoblexContext(`UI_${uiName}Context`);
   const protocol = new RoblexProtocol(`UI_${uiName}Protocol`, context);
   
-  context.registerModel(model);
+  context.registerModel(model as any);
   
   return {
     model,
@@ -208,7 +208,7 @@ export function createRoblexStudioServiceMcp(
   const context = new RoblexContext(`Service_${serviceName}Context`);
   const protocol = new RoblexProtocol(`Service_${serviceName}Protocol`, context);
   
-  context.registerModel(model);
+  context.registerModel(model as any);
   
   return {
     model,

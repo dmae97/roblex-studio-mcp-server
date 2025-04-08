@@ -1,19 +1,30 @@
-import { z } from 'zod';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.scriptValidator = void 0;
+const zod_1 = require("zod");
+const logger_js_1 = require("../utils/logger.js");
+// Define the input schema for the script validator tool
+const ScriptValidatorInputSchema = zod_1.z.object({
+    scriptContent: zod_1.z.string().min(1, { message: 'Script content cannot be empty' })
+        .describe('The Lua script content to validate'),
+    scriptType: zod_1.z.enum(['ServerScript', 'LocalScript', 'ModuleScript'])
+        .describe('Type of script'),
+    checkBestPractices: zod_1.z.boolean().default(true)
+        .describe('Whether to check for best practices'),
+    checkPerformance: zod_1.z.boolean().default(false)
+        .describe('Whether to check for performance issues')
+});
 /**
  * Tool for validating Roblex scripts for syntax errors and best practices
  */
-export const scriptValidator = {
+exports.scriptValidator = {
     register: (server) => {
-        server.tool('validate-roblex-script', {
-            // Input schema using Zod
-            scriptContent: z.string().describe('The Lua script content to validate'),
-            scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script'),
-            checkBestPractices: z.boolean().default(true).describe('Whether to check for best practices'),
-            checkPerformance: z.boolean().default(false).describe('Whether to check for performance issues')
-        }, async ({ scriptContent, scriptType, checkBestPractices, checkPerformance }) => {
-            logger.info(`Validating ${scriptType} (${scriptContent.length} characters)`);
+        server.tool('validate-roblex-script', async (params) => {
             try {
+                // Validate input using the schema
+                const validatedInput = ScriptValidatorInputSchema.parse(params);
+                const { scriptContent, scriptType, checkBestPractices, checkPerformance } = validatedInput;
+                logger_js_1.logger.info(`Validating ${scriptType} (${scriptContent.length} characters)`);
                 // In a real implementation, this would use a Lua parser or linter
                 // Here we'll do some basic validation with regex
                 const issues = [];
@@ -112,7 +123,7 @@ export const scriptValidator = {
                 };
             }
             catch (error) {
-                logger.error('Error validating script:', error);
+                logger_js_1.logger.error(`Error validating script: ${error instanceof Error ? error.message : String(error)}`);
                 return {
                     content: [
                         {
@@ -124,7 +135,7 @@ export const scriptValidator = {
                 };
             }
         });
-        logger.debug('Script validator tool registered');
+        logger_js_1.logger.debug('Script validator tool registered');
     }
 };
 //# sourceMappingURL=scriptValidator.js.map

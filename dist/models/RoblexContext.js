@@ -1,9 +1,12 @@
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RoblexContext = void 0;
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Context class for Roblex components
  * Implements the Context part of Model-Context-Protocol pattern
  */
-export class RoblexContext {
+class RoblexContext {
     _models;
     _name;
     /**
@@ -13,7 +16,7 @@ export class RoblexContext {
     constructor(name) {
         this._name = name;
         this._models = new Map();
-        logger.debug(`Context created: ${name}`);
+        logger_js_1.logger.debug(`Context created: ${name}`);
     }
     /**
      * Get the context name
@@ -27,10 +30,10 @@ export class RoblexContext {
      */
     registerModel(model) {
         if (this._models.has(model.name)) {
-            logger.warn(`Model with name ${model.name} already registered, replacing`);
+            logger_js_1.logger.warn(`Model with name ${model.name} already registered, replacing`);
         }
         this._models.set(model.name, model);
-        logger.debug(`Model ${model.name} registered with context ${this._name}`);
+        logger_js_1.logger.debug(`Model ${model.name} registered with context ${this._name}`);
     }
     /**
      * Unregister a model from this context
@@ -40,7 +43,7 @@ export class RoblexContext {
     unregisterModel(modelName) {
         const result = this._models.delete(modelName);
         if (result) {
-            logger.debug(`Model ${modelName} unregistered from context ${this._name}`);
+            logger_js_1.logger.debug(`Model ${modelName} unregistered from context ${this._name}`);
         }
         return result;
     }
@@ -99,4 +102,5 @@ export class RoblexContext {
         return true;
     }
 }
+exports.RoblexContext = RoblexContext;
 //# sourceMappingURL=RoblexContext.js.map

@@ -2,22 +2,53 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { logger } from '../utils/logger.js';
 
+// Define Zod schema separately for clarity and validation
+const scriptGeneratorSchema = z.object({
+  scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script to generate'),
+  functionality: z.string().describe('Description of what the script should do'),
+  includeComments: z.boolean().default(true).describe('Whether to include comments in the code'),
+  complexity: z.enum(['Beginner', 'Intermediate', 'Advanced']).describe('Complexity level of the code'),
+  targetAudience: z.enum(['Child', 'Teen', 'Adult']).default('Teen').describe('Target audience for the script')
+});
+
+// Infer the type from the schema
+type ScriptGeneratorParams = z.infer<typeof scriptGeneratorSchema>;
+
 /**
  * Prompt for generating Roblex scripts with AI assistance
  */
 export const scriptGenerator = {
   register: (server: McpServer) => {
     server.prompt(
-      'generate-script',
-      {
-        // Input schema using Zod
-        scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script to generate'),
-        functionality: z.string().describe('Description of what the script should do'),
-        includeComments: z.boolean().default(true).describe('Whether to include comments in the code'),
-        complexity: z.enum(['Beginner', 'Intermediate', 'Advanced']).describe('Complexity level of the code'),
-        targetAudience: z.enum(['Child', 'Teen', 'Adult']).default('Teen').describe('Target audience for the script')
-      },
-      ({ scriptType, functionality, includeComments, complexity, targetAudience }) => {
+      'generate-script', // Prompt name
+      'Generate a Roblex script based on requirements', // Prompt description
+      // Omit definition object, validate manually in callback
+      (extra: any) => { // Use `any` type for extra
+        let params: ScriptGeneratorParams;
+        try {
+          // Manually parse and validate parameters
+          const rawParams = extra?.parameters ?? extra;
+          params = scriptGeneratorSchema.parse(rawParams);
+        } catch (error) {
+          logger.error('Invalid parameters received for generate-script prompt', { error, received: extra });
+          return {
+            messages: [
+              {
+                role: 'assistant',
+                content: { type: 'text', text: 'Error: Invalid parameters received for script generator.' }
+              }
+            ]
+          };
+        }
+
+        const { 
+          scriptType, 
+          functionality, 
+          includeComments, 
+          complexity, 
+          targetAudience 
+        } = params; // Destructure from validated params
+        
         logger.info(`Generating ${scriptType} prompt for functionality: ${functionality}`);
         
         // Build system message based on parameters
@@ -69,20 +100,28 @@ export const scriptGenerator = {
           systemMessage += 'Focus on encapsulation, clean interfaces, and reusability. Remember to return the module table at the end. ';
         }
         
+        // Combine system message and user prompt into a single user message
+        const userPromptText = `System Instructions:
+${systemMessage}
+
+User Request:
+Please create a ${scriptType} for Roblex Studio that implements the following functionality: ${functionality}`;
+
         return {
           messages: [
+            // Remove the message with role: 'system'
+            // {
+            //   role: 'system',
+            //   content: {
+            //     type: 'text',
+            //     text: systemMessage
+            //   }
+            // },
             {
-              role: 'system',
+              role: 'user', // Only return user/assistant messages
               content: {
                 type: 'text',
-                text: systemMessage
-              }
-            },
-            {
-              role: 'user',
-              content: {
-                type: 'text',
-                text: `Please create a ${scriptType} for Roblex Studio that implements the following functionality: ${functionality}`
+                text: userPromptText // Combine instructions and request here
               }
             }
           ]

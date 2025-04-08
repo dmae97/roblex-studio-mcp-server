@@ -331,7 +331,7 @@ return ${objectName}
             ]
           };
         } catch (error) {
-          logger.error('Error creating physics system:', error);
+          logger.error('Error creating physics system:', { message: error instanceof Error ? error.message : String(error) });
           return {
             content: [
               { 
@@ -466,7 +466,7 @@ return CollisionManager
             ]
           };
         } catch (error) {
-          logger.error('Error setting up collision groups:', error);
+          logger.error('Error setting up collision groups:', { message: error instanceof Error ? error.message : String(error) });
           return {
             content: [
               { 

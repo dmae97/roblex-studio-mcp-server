@@ -1,10 +1,11 @@
-import { Tool } from '@modelcontextprotocol/sdk';
+// import { Tool } from '@modelcontextprotocol/sdk/server/mcp.js'; // Assuming Tool is exported from here, adjust if needed
+// Temporarily remove type annotation if Tool type path is incorrect
 import axios from 'axios';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const metaverseIntegration: Tool = {
+export const metaverseIntegration /*: Tool*/ = {
   name: 'integrate-metaverse-features',
   description: 'Roblox 게임과 외부 메타버스 플랫폼 통합',
   parameters: {
@@ -43,7 +44,7 @@ export const metaverseIntegration: Tool = {
       }
     }
   },
-  execute: async (params) => {
+  execute: async (params: any) => { // TODO: Define a proper interface for params based on the schema
     try {
       console.log(`Generating metaverse integration for type: ${params.integrationType}`);
       
@@ -53,7 +54,7 @@ export const metaverseIntegration: Tool = {
       const securityLevel = params.securityLevel || 'basic';
       
       // Get list of platforms formatted for display
-      const platformNames = platforms.map(p => {
+      const platformNames = platforms.map((p: any) => { // TODO: Define proper type for p
         if (p === 'custom' && params.customPlatform) {
           return params.customPlatform;
         }
@@ -130,14 +131,19 @@ export const metaverseIntegration: Tool = {
       };
       
       // Get configuration for requested integration type
-      const config = integrationConfig[params.integrationType] || {
+      const config = integrationConfig[params.integrationType as keyof typeof integrationConfig] || {
         description: `${params.integrationType} 메타버스 통합`,
         endpoints: {},
         webhooks: {}
       };
       
       // Generate security configuration based on security level
-      const securityConfig = {
+      const securityLevels: Record<'basic' | 'enhanced' | 'enterprise', {
+        encryption: string;
+        authentication: string;
+        rateLimit: string;
+        description: string;
+      }> = {
         basic: {
           encryption: 'AES-256',
           authentication: 'JWT',
@@ -156,7 +162,8 @@ export const metaverseIntegration: Tool = {
           rateLimit: '10000 requests per hour',
           description: '엔터프라이즈급 보안이 적용됩니다. 민감한 데이터를 처리하는 고급 애플리케이션에 적합합니다.'
         }
-      }[securityLevel];
+      };
+      const securityConfig = securityLevels[securityLevel as keyof typeof securityLevels];
       
       // Generate sample script for server-side component
       const serverScript = `-- 메타버스 연결 서버 코드 (${params.integrationType})
@@ -166,7 +173,7 @@ local Players = game:GetService("Players")
 local MetaverseConnector = {}
 MetaverseConnector.Config = {
 \tIntegrationType = "${params.integrationType}",
-\tPlatforms = {${platforms.map(p => `"${p}"`).join(', ')}},
+\tPlatforms = {${platforms.map((p: any) => `"${p}"`).join(', ')}}, // TODO: Define proper type for p
 \tSecurityLevel = "${securityLevel}"
 }
 
@@ -318,7 +325,8 @@ return MetaverseClient`;
       };
     } catch (error) {
       console.error('Error in metaverse integration:', error);
-      throw new Error(`Metaverse integration failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Metaverse integration failed: ${errorMessage}`);
     }
   }
 };

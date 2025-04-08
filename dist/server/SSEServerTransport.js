@@ -1,9 +1,12 @@
-import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SSEServerTransport = void 0;
+const uuid_1 = require("uuid");
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Server-Sent Events (SSE) transport for MCP communication
  */
-export class SSEServerTransport {
+class SSEServerTransport {
     _sessionId;
     _path;
     _res;
@@ -15,7 +18,7 @@ export class SSEServerTransport {
      * @param res Express response object
      */
     constructor(path, res) {
-        this._sessionId = uuidv4();
+        this._sessionId = (0, uuid_1.v4)();
         this._path = path;
         this._res = res;
         // Configure response for SSE
@@ -27,11 +30,11 @@ export class SSEServerTransport {
         this._isConnected = true;
         // Send initial connection success message
         this._sendEvent('connected', { sessionId: this._sessionId });
-        logger.info(`SSE transport created: ${this._sessionId}`);
+        logger_js_1.logger.info(`SSE transport created: ${this._sessionId}`);
         // Handle client disconnection
         this._res.on('close', () => {
             this._isConnected = false;
-            logger.info(`SSE client disconnected: ${this._sessionId}`);
+            logger_js_1.logger.info(`SSE client disconnected: ${this._sessionId}`);
         });
     }
     /**
@@ -46,7 +49,7 @@ export class SSEServerTransport {
      */
     async send(message) {
         if (!this._isConnected) {
-            logger.warn(`Attempted to send message to disconnected client: ${this._sessionId}`);
+            logger_js_1.logger.warn(`Attempted to send message to disconnected client: ${this._sessionId}`);
             return;
         }
         this._sendEvent('message', message);
@@ -58,7 +61,7 @@ export class SSEServerTransport {
      */
     async handlePostMessage(req, res) {
         if (!this._messageHandler) {
-            logger.warn(`No message handler registered for SSE transport: ${this._sessionId}`);
+            logger_js_1.logger.warn(`No message handler registered for SSE transport: ${this._sessionId}`);
             res.status(500).json({ error: 'Server not ready for messages' });
             return;
         }
@@ -67,7 +70,7 @@ export class SSEServerTransport {
             res.status(200).json({ success: true });
         }
         catch (error) {
-            logger.error(`Error handling POST message: ${error instanceof Error ? error.message : String(error)}`);
+            logger_js_1.logger.error(`Error handling POST message: ${error instanceof Error ? error.message : String(error)}`);
             res.status(500).json({
                 error: 'Failed to process message',
                 details: error instanceof Error ? error.message : String(error)
@@ -97,7 +100,7 @@ export class SSEServerTransport {
             // Node.js의 기본 응답 처리가 데이터를 적절히 전송
         }
         catch (error) {
-            logger.error(`Error sending SSE event: ${error instanceof Error ? error.message : String(error)}`);
+            logger_js_1.logger.error(`Error sending SSE event: ${error instanceof Error ? error.message : String(error)}`);
             this._isConnected = false;
         }
     }
@@ -114,11 +117,12 @@ export class SSEServerTransport {
             // End the response
             this._res.end();
             this._isConnected = false;
-            logger.info(`SSE transport disconnected: ${this._sessionId}`);
+            logger_js_1.logger.info(`SSE transport disconnected: ${this._sessionId}`);
         }
         catch (error) {
-            logger.error(`Error disconnecting SSE transport: ${error instanceof Error ? error.message : String(error)}`);
+            logger_js_1.logger.error(`Error disconnecting SSE transport: ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 }
+exports.SSEServerTransport = SSEServerTransport;
 //# sourceMappingURL=SSEServerTransport.js.map

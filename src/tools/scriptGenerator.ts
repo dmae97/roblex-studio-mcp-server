@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { McpServer } from '../server/McpServer.js'; // Adjust path as necessary
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { logger } from '../utils/logger.js';
 
 // Define the input schema for the scriptGenerator tool
@@ -27,8 +27,10 @@ end
 `;
 
   return {
-    content: [{ type: 'text', text: generatedScript }]
-  };
+    content: [
+      { type: 'text', text: generatedScript } as Record<string, unknown>
+    ]
+  } as Record<string, unknown>;
 }
 
 // Function to register the tool with the McpServer
@@ -37,26 +39,42 @@ export const scriptGenerator = {
     // Remove the Schema argument from the tool registration
     server.tool(
       'scriptGenerator',
-      // ScriptGeneratorInputSchema removed from here
-      // Add 'unknown' type annotation for params
-      async (params: unknown) => {
+      ScriptGeneratorInputSchema.shape,
+      async (
+        args: { description: string },
+        extra: any
+      ): Promise<{
+        [x: string]: unknown;
+        content: (
+          | { [x: string]: unknown; type: 'text'; text: string }
+          | { [x: string]: unknown; type: 'image'; data: string; mimeType: string }
+          | { [x: string]: unknown; type: 'audio'; data: string; mimeType: string }
+          | { [x: string]: unknown; type: 'resource'; resource: any }
+        )[];
+        isError?: boolean;
+        _meta?: any;
+      }> => {
         try {
-          // Validate input using the schema
-          const validatedParams = ScriptGeneratorInputSchema.parse(params);
-          return await generateScript(validatedParams);
+          const validatedParams = ScriptGeneratorInputSchema.parse(args);
+          const baseResult = await generateScript(validatedParams);
+          return {
+            ...baseResult,
+            _meta: extra?._meta
+          } as any;
         } catch (error) {
           logger.error('Error in scriptGenerator tool:', {
             error: error instanceof Error ? error.message : String(error),
-            inputParams: params
+            inputParams: args
           });
-          // Return an error response in the expected format
           return {
-            content: [{ type: 'text', text: `Error generating script: ${error instanceof Error ? error.message : String(error)}` }],
-            isError: true
+            content: [
+              { type: 'text', text: `Error generating script: ${error instanceof Error ? error.message : String(error)}` }
+            ],
+            isError: true,
+            _meta: extra?._meta
           };
         }
       }
-      // Description removed from here, should be handled by ListToolsRequestSchema handler if needed
     );
     logger.info('Registered tool: scriptGenerator');
   }

@@ -1,8 +1,11 @@
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.educationalTools = void 0;
+const logger_js_1 = require("../utils/logger.js");
 /**
- * Educational game tools for Roblex Studio
+ * Roblex Studio용 교육 게임 도구
  */
-export const educationalTools = {
+exports.educationalTools = {
     register: (server) => {
         server.tool('create-educational-game', {
             educationLevel: {
@@ -42,17 +45,17 @@ export const educationalTools = {
             }
         }, async (params) => {
             try {
-                logger.info(`Creating educational game for subject: ${params.subject} at level: ${params.educationLevel}`);
-                // Default values if not provided
+                logger_js_1.logger.info(`Creating educational game for subject: ${params.subject} at level: ${params.educationLevel}`);
+                // 제공되지 않은 경우 기본값
                 const interactivityLevel = params.interactivityLevel || 'medium';
                 const assessmentType = params.assessmentType || 'quiz';
-                const progressTracking = params.progressTracking !== false; // Default to true
-                // Determine subject name for display
+                const progressTracking = params.progressTracking !== false; // 기본값은 true
+                // 표시용 주제 이름 결정
                 let subjectName = params.subject;
                 if (params.subject === 'custom' && params.customSubject) {
                     subjectName = params.customSubject;
                 }
-                // Map for education level display names
+                // 교육 수준 표시 이름 매핑
                 const educationLevelNames = {
                     elementary: '초등학교',
                     middleSchool: '중학교',
@@ -60,7 +63,7 @@ export const educationalTools = {
                     university: '대학교',
                     professional: '전문가'
                 };
-                // Map subjects to display names
+                // 주제를 표시 이름에 매핑
                 const subjectDisplayNames = {
                     math: '수학',
                     science: '과학',
@@ -70,7 +73,7 @@ export const educationalTools = {
                     arts: '예술',
                     custom: params.customSubject || '사용자 정의 주제'
                 };
-                // Get default learning outcomes if not provided
+                // 제공되지 않은 경우 기본 학습 결과
                 const defaultLearningOutcomes = {
                     math: [
                         '수치적 문제 해결 능력 향상',
@@ -104,12 +107,12 @@ export const educationalTools = {
                     ]
                 };
                 const learningOutcomes = params.learningOutcomes ||
-                    defaultLearningOutcomes[params.subject] ||
+                    (params.subject && defaultLearningOutcomes[params.subject]) ||
                     ['학습 목표 1', '학습 목표 2', '학습 목표 3'];
-                // Generate core educational system code
+                // 핵심 교육 시스템 코드 생성
                 const coreSystemCode = `-- 핵심 교육 시스템
--- 대상: ${educationLevelNames[params.educationLevel]}
--- 주제: ${subjectDisplayNames[params.subject]}
+-- 대상: ${params.educationLevel && educationLevelNames[params.educationLevel]}
+-- 주제: ${params.subject && subjectDisplayNames[params.subject]}
 
 local EducationalSystem = {}
 EducationalSystem.Config = {
@@ -122,7 +125,7 @@ EducationalSystem.Config = {
 
 -- 학습 목표
 EducationalSystem.LearningOutcomes = {
-\t${learningOutcomes.map(outcome => `"${outcome}"`).join(',\n\t')}
+\t${learningOutcomes.map((outcome) => `"${outcome}"`).join(',\n\t')}
 }
 
 -- 시스템 초기화
@@ -198,7 +201,7 @@ return EducationalSystem`;
                 };
             }
             catch (error) {
-                logger.error('Error creating educational game:', error);
+                logger_js_1.logger.error('Error creating educational game:', error);
                 return {
                     content: [
                         { type: 'text', text: `Error creating educational game: ${error instanceof Error ? error.message : String(error)}` }
@@ -223,14 +226,13 @@ return EducationalSystem`;
                 description: '퀴즈 문항 수'
             }
         }, async (params) => {
-            logger.info(`Creating quiz system for subject: ${params.subject}`);
+            logger_js_1.logger.info(`Creating quiz system for subject: ${params.subject}`);
             return {
                 content: [
                     { type: 'text', text: `-- Quiz system for ${params.subject} created` }
                 ]
             };
         });
-        logger.debug('Educational tools registered');
     }
 };
 //# sourceMappingURL=educationalTools.js.map

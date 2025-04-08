@@ -3,7 +3,7 @@ import { parseColor } from './utils.js';
 /**
  * Generates code for environment settings
  */
-export function generateEnvironmentCode(params) {
+export function generateEnvironmentCode(params: any): string { // TODO: Define a proper interface for params
   const { lighting, fog, atmosphere, soundscape } = params;
   
   let code = `-- Environment Settings Generator
@@ -61,7 +61,7 @@ local function SetupEnvironment()
     
 `;
 
-    soundscape.forEach((sound, index) => {
+    soundscape.forEach((sound: any, index: number) => { // TODO: Define a proper interface for sound
       code += `    local sound${index + 1} = Instance.new("Sound")
     sound${index + 1}.Name = "AmbientSound${index + 1}"
     sound${index + 1}.SoundId = "${sound.soundId}"

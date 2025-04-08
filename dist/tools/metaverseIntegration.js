@@ -1,6 +1,12 @@
-import dotenv from 'dotenv';
-dotenv.config();
-export const metaverseIntegration = {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.metaverseIntegration = void 0;
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+exports.metaverseIntegration /*: Tool*/ = {
     name: 'integrate-metaverse-features',
     description: 'Roblox 게임과 외부 메타버스 플랫폼 통합',
     parameters: {
@@ -47,7 +53,7 @@ export const metaverseIntegration = {
             const assetTypes = params.assetTypes || ['avatar', 'wearable'];
             const securityLevel = params.securityLevel || 'basic';
             // Get list of platforms formatted for display
-            const platformNames = platforms.map(p => {
+            const platformNames = platforms.map((p) => {
                 if (p === 'custom' && params.customPlatform) {
                     return params.customPlatform;
                 }
@@ -128,7 +134,7 @@ export const metaverseIntegration = {
                 webhooks: {}
             };
             // Generate security configuration based on security level
-            const securityConfig = {
+            const securityLevels = {
                 basic: {
                     encryption: 'AES-256',
                     authentication: 'JWT',
@@ -147,7 +153,8 @@ export const metaverseIntegration = {
                     rateLimit: '10000 requests per hour',
                     description: '엔터프라이즈급 보안이 적용됩니다. 민감한 데이터를 처리하는 고급 애플리케이션에 적합합니다.'
                 }
-            }[securityLevel];
+            };
+            const securityConfig = securityLevels[securityLevel];
             // Generate sample script for server-side component
             const serverScript = `-- 메타버스 연결 서버 코드 (${params.integrationType})
 local HttpService = game:GetService("HttpService")
@@ -156,7 +163,7 @@ local Players = game:GetService("Players")
 local MetaverseConnector = {}
 MetaverseConnector.Config = {
 \tIntegrationType = "${params.integrationType}",
-\tPlatforms = {${platforms.map(p => `"${p}"`).join(', ')}},
+\tPlatforms = {${platforms.map((p) => `"${p}"`).join(', ')}}, // TODO: Define proper type for p
 \tSecurityLevel = "${securityLevel}"
 }
 
@@ -307,7 +314,8 @@ return MetaverseClient`;
         }
         catch (error) {
             console.error('Error in metaverse integration:', error);
-            throw new Error(`Metaverse integration failed: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`Metaverse integration failed: ${errorMessage}`);
         }
     }
 };

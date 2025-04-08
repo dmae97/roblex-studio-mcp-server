@@ -53,12 +53,11 @@ function log(level: LogLevel, message: string, meta?: Record<string, unknown>): 
     return;
   }
 
-  const timestamp = getTimestamp();
   const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
   
-  // 콘솔에 로그 출력 (색상 적용)
-  console.log(
-    `${COLORS.timestamp}[${timestamp}]${COLORS.reset} ${COLORS[level]}[${level.toUpperCase()}]${COLORS.reset} ${message}${metaStr}`
+  // 표준 에러(stderr)로 로그 출력 (타임스탬프, 레벨, 색상 제거)
+  console.error(
+    `${message}${metaStr}` 
   );
 }
 

@@ -1,38 +1,29 @@
-import { McpServer } from '../server/McpServer.js';
-import { PromptRegistry } from '../server/McpHelpers.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { scriptGenerator } from './scriptGenerator.js';
 import { bugFinder } from './bugFinder.js';
 import { logger } from '../utils/logger.js';
-
-// Create a new prompt registry
-const promptRegistry = new PromptRegistry();
-
-// 간소화된 등록
-if (scriptGenerator && typeof scriptGenerator.register === 'function') {
-  try {
-    promptRegistry.add('scriptGenerator', scriptGenerator);
-  } catch (error) {
-    logger.warn('Failed to register scriptGenerator', { error: String(error) });
-  }
-}
-
-if (bugFinder && typeof bugFinder.register === 'function') {
-  try {
-    promptRegistry.add('bugFinder', bugFinder);
-  } catch (error) {
-    logger.warn('Failed to register bugFinder', { error: String(error) });
-  }
-}
 
 /**
  * Registry for all Roblex Studio prompts
  */
 export const roblexPrompts = {
-  register: (server: any) => {
+  register: (server: McpServer) => {
     logger.info('Registering Roblex Studio prompts...');
     
-    // Register all prompts from the registry
-    promptRegistry.register(server);
+    try {
+      // 스크립트 생성기 프롬프트 등록
+      if (scriptGenerator && typeof scriptGenerator.register === 'function') {
+        scriptGenerator.register(server);
+      }
+      
+      // 버그 파인더 프롬프트 등록
+      if (bugFinder && typeof bugFinder.register === 'function') {
+        bugFinder.register(server);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Error registering prompts: ${errorMessage}`);
+    }
     
     logger.info('Roblex Studio prompts registered successfully');
   }

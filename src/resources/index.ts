@@ -1,38 +1,29 @@
-import { McpServer } from '../server/McpServer.js';
-import { ResourceRegistry } from '../server/McpHelpers.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { documentation } from './documentation.js';
 import { templates } from './templates.js';
 import { logger } from '../utils/logger.js';
-
-// Create a new resource registry
-const resourceRegistry = new ResourceRegistry();
-
-// 간소화된 등록
-if (documentation && typeof documentation.register === 'function') {
-  try {
-    resourceRegistry.add('documentation', documentation);
-  } catch (error) {
-    logger.warn('Failed to register documentation', { error: String(error) });
-  }
-}
-
-if (templates && typeof templates.register === 'function') {
-  try {
-    resourceRegistry.add('templates', templates);
-  } catch (error) {
-    logger.warn('Failed to register templates', { error: String(error) });
-  }
-}
 
 /**
  * Registry for all Roblex Studio resources
  */
 export const roblexResources = {
-  register: (server: any) => {
+  register: (server: McpServer) => {
     logger.info('Registering Roblex Studio resources...');
     
-    // Register all resources from the registry
-    resourceRegistry.register(server);
+    try {
+      // 문서 리소스 등록
+      if (documentation && typeof documentation.register === 'function') {
+        documentation.register(server);
+      }
+      
+      // 템플릿 리소스 등록
+      if (templates && typeof templates.register === 'function') {
+        templates.register(server);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Error registering resources: ${errorMessage}`);
+    }
     
     logger.info('Roblex Studio resources registered successfully');
   }

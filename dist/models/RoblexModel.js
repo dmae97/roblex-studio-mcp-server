@@ -1,10 +1,13 @@
-import { logger } from '../utils/logger.js';
-import { EventEmitter } from 'events';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RoblexModel = void 0;
+const logger_js_1 = require("../utils/logger.js");
+const events_1 = require("events");
 /**
  * Base model class for Roblex studio components
  * Implements the Model part of Model-Context-Protocol pattern
  */
-export class RoblexModel extends EventEmitter {
+class RoblexModel extends events_1.EventEmitter {
     _state;
     _name;
     _eventHandlers;
@@ -23,7 +26,7 @@ export class RoblexModel extends EventEmitter {
             batchChange: [],
             propertyChange: {}
         };
-        logger.debug(`Model created: ${name}`);
+        logger_js_1.logger.debug(`Model created: ${name}`);
     }
     /**
      * Get the model name
@@ -208,4 +211,5 @@ export class RoblexModel extends EventEmitter {
         this._eventHandlers.reset.forEach(handler => handler(resetEvent));
     }
 }
+exports.RoblexModel = RoblexModel;
 //# sourceMappingURL=RoblexModel.js.map

@@ -1,10 +1,13 @@
-import { RoblexModel, RoblexContext, RoblexProtocol, globalContext, globalProtocol } from './index.js';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createRoblexStudioAdapterFactory = exports.RoblexStudioAdapter = void 0;
+const index_js_1 = require("./index.js");
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Roblox Studio adapter for MCP connection
  * Handles communication between Roblox Studio and the MCP server
  */
-export class RoblexStudioAdapter {
+class RoblexStudioAdapter {
     _protocol;
     _context;
     _connectionId;
@@ -19,14 +22,14 @@ export class RoblexStudioAdapter {
     constructor(connectionId, useGlobal = true) {
         this._connectionId = connectionId;
         if (useGlobal) {
-            this._protocol = globalProtocol;
-            this._context = globalContext;
+            this._protocol = index_js_1.globalProtocol;
+            this._context = index_js_1.globalContext;
         }
         else {
-            this._context = new RoblexContext(`RoblexStudio_${connectionId}`);
-            this._protocol = new RoblexProtocol(`RoblexStudio_${connectionId}`, this._context);
+            this._context = new index_js_1.RoblexContext(`RoblexStudio_${connectionId}`);
+            this._protocol = new index_js_1.RoblexProtocol(`RoblexStudio_${connectionId}`, this._context);
         }
-        logger.info(`Created Roblox Studio adapter with connection ID: ${connectionId}`);
+        logger_js_1.logger.info(`Created Roblox Studio adapter with connection ID: ${connectionId}`);
         this._registerStudioHandlers();
     }
     /**
@@ -58,14 +61,14 @@ export class RoblexStudioAdapter {
      */
     connect() {
         if (this._isConnected) {
-            logger.warn(`Roblox Studio adapter ${this._connectionId} already connected`);
+            logger_js_1.logger.warn(`Roblox Studio adapter ${this._connectionId} already connected`);
             return;
         }
         this._isConnected = true;
         this._lastPingTime = Date.now();
         // Start ping interval to keep connection alive
         this._pingInterval = setInterval(() => this._checkConnection(), 30000);
-        logger.info(`Roblox Studio adapter ${this._connectionId} connected`);
+        logger_js_1.logger.info(`Roblox Studio adapter ${this._connectionId} connected`);
         // Notify connection
         this._protocol.processMessage('studio:connected', {
             connectionId: this._connectionId,
@@ -77,7 +80,7 @@ export class RoblexStudioAdapter {
      */
     disconnect() {
         if (!this._isConnected) {
-            logger.warn(`Roblox Studio adapter ${this._connectionId} already disconnected`);
+            logger_js_1.logger.warn(`Roblox Studio adapter ${this._connectionId} already disconnected`);
             return;
         }
         this._isConnected = false;
@@ -86,7 +89,7 @@ export class RoblexStudioAdapter {
             clearInterval(this._pingInterval);
             this._pingInterval = null;
         }
-        logger.info(`Roblox Studio adapter ${this._connectionId} disconnected`);
+        logger_js_1.logger.info(`Roblox Studio adapter ${this._connectionId} disconnected`);
         // Notify disconnection
         this._protocol.processMessage('studio:disconnected', {
             connectionId: this._connectionId,
@@ -101,11 +104,11 @@ export class RoblexStudioAdapter {
      */
     async handleMessage(messageType, data) {
         if (!this._isConnected) {
-            logger.warn(`Received message for disconnected adapter ${this._connectionId}`);
+            logger_js_1.logger.warn(`Received message for disconnected adapter ${this._connectionId}`);
             return { error: true, message: 'Not connected' };
         }
         this._lastPingTime = Date.now();
-        logger.debug(`Handling message from Roblox Studio: ${messageType}`);
+        logger_js_1.logger.debug(`Handling message from Roblox Studio: ${messageType}`);
         // Process the message through the protocol
         const results = await this._protocol.processMessage(messageType, data);
         return results.length > 0 ? results[0] : { received: true };
@@ -118,13 +121,13 @@ export class RoblexStudioAdapter {
      */
     async sendMessage(messageType, data) {
         if (!this._isConnected) {
-            logger.warn(`Cannot send message to disconnected adapter ${this._connectionId}`);
+            logger_js_1.logger.warn(`Cannot send message to disconnected adapter ${this._connectionId}`);
             return false;
         }
-        logger.debug(`Sending message to Roblox Studio: ${messageType}`);
+        logger_js_1.logger.debug(`Sending message to Roblox Studio: ${messageType}`);
         // In a real implementation, this would send the message to Roblox Studio
         // For now, just log it
-        logger.info(`Message sent to Roblox Studio: ${messageType} - ${JSON.stringify(data)}`);
+        logger_js_1.logger.info(`Message sent to Roblox Studio: ${messageType} - ${JSON.stringify(data)}`);
         return true;
     }
     /**
@@ -136,7 +139,7 @@ export class RoblexStudioAdapter {
         const elapsed = now - this._lastPingTime;
         // If no ping for 2 minutes, disconnect
         if (elapsed > 120000) {
-            logger.warn(`No ping from Roblox Studio adapter ${this._connectionId} for ${elapsed}ms, disconnecting`);
+            logger_js_1.logger.warn(`No ping from Roblox Studio adapter ${this._connectionId} for ${elapsed}ms, disconnecting`);
             this.disconnect();
         }
     }
@@ -168,7 +171,7 @@ export class RoblexStudioAdapter {
         // Create a new model in the context
         this._protocol.registerHandler('studio:createModel', async (data) => {
             const { name, initialState } = data;
-            const model = new RoblexModel(name, initialState);
+            const model = new index_js_1.RoblexModel(name, initialState);
             this._context.registerModel(model);
             return {
                 success: true,
@@ -218,7 +221,7 @@ export class RoblexStudioAdapter {
             // In a real implementation, this would create an object in Roblox Studio
             // For now, just create a model to track it
             const modelName = `Workspace_${className}_${name}`;
-            const model = new RoblexModel(modelName, {
+            const model = new index_js_1.RoblexModel(modelName, {
                 className,
                 name,
                 parent: 'Workspace',
@@ -251,11 +254,12 @@ export class RoblexStudioAdapter {
         });
     }
 }
+exports.RoblexStudioAdapter = RoblexStudioAdapter;
 /**
  * Create a Roblox Studio adapter factory
  * @returns Factory function to create adapters
  */
-export function createRoblexStudioAdapterFactory() {
+function createRoblexStudioAdapterFactory() {
     const adapters = new Map();
     return (connectionId) => {
         // Reuse existing adapter if it exists
@@ -268,4 +272,5 @@ export function createRoblexStudioAdapterFactory() {
         return adapter;
     };
 }
+exports.createRoblexStudioAdapterFactory = createRoblexStudioAdapterFactory;
 //# sourceMappingURL=RoblexStudioAdapter.js.map

@@ -1,6 +1,14 @@
-import NodeCache from 'node-cache';
-const localizationCache = new NodeCache({ stdTTL: 3600 });
-export const localizationManager = {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.localizationManager = void 0;
+// import { Tool } from '@modelcontextprotocol/sdk/server/mcp.js'; // Assuming Tool is exported from here, adjust if needed
+// Temporarily remove type annotation if Tool type path is incorrect
+const node_cache_1 = __importDefault(require("node-cache"));
+const localizationCache = new node_cache_1.default({ stdTTL: 3600 });
+exports.localizationManager /*: Tool*/ = {
     name: 'manage-localization',
     description: '게임 텍스트 및 콘텐츠 지역화 관리',
     parameters: {
@@ -83,7 +91,7 @@ export const localizationManager = {
                     result = {
                         success: true,
                         translatedEntries: 42,
-                        languages: params.targetLanguages.map(lang => ({
+                        languages: params.targetLanguages.map((lang) => ({
                             code: lang,
                             translatedCount: 42,
                             status: 'completed'
@@ -120,7 +128,8 @@ export const localizationManager = {
         }
         catch (error) {
             console.error('Error in localization manager:', error);
-            throw new Error(`Localization operation failed: ${error.message}`);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`Localization operation failed: ${errorMessage}`);
         }
     }
 };

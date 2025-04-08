@@ -1,9 +1,12 @@
-import { EventEmitter } from 'events';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.McpServer = void 0;
+const events_1 = require("events");
 /**
  * Simple MCP Server implementation
  * Handles connections, tools, and message dispatching
  */
-export class McpServer extends EventEmitter {
+class McpServer extends events_1.EventEmitter {
     _name;
     _version;
     _tools;
@@ -175,4 +178,5 @@ export class McpServer extends EventEmitter {
         this._logger.info('All transports disconnected');
     }
 }
+exports.McpServer = McpServer;
 //# sourceMappingURL=McpServer.js.map

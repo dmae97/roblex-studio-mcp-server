@@ -1,5 +1,6 @@
 // Claude와 MCP 서버 연동 예제
 const API_KEY = 'YOUR_CLAUDE_API_KEY'; // Claude API 키를 입력하세요
+const ROBLEX_MCP_API_KEY = ''; // Your Roblex Studio MCP Server API Key
 const SERVER_URL = 'http://localhost:3000'; // MCP 서버 URL
 
 /**
@@ -35,7 +36,7 @@ async function callClaude(prompt, tools = []) {
 }
 
 /**
- * MCP 서버 연결 및 세션 생성
+ * MCP 서버 연결 및 세션 생성 (API 키 사용)
  */
 async function connectToMCP() {
   const response = await fetch(`${SERVER_URL}/auth/login`, {
@@ -44,16 +45,21 @@ async function connectToMCP() {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      username: 'admin',
-      password: 'admin'  // .env 파일에 설정된 ADMIN_PASSWORD와 일치해야 합니다
+      apiKey: ROBLEX_MCP_API_KEY // Send API key instead of username/password
     })
   });
 
   if (!response.ok) {
-    throw new Error(`MCP 서버 연결 실패: ${response.status} ${response.statusText}`);
+    const errorData = await response.text(); // Get error details
+    throw new Error(`MCP 서버 연결 실패: ${response.status} ${response.statusText} - ${errorData}`);
   }
 
   const data = await response.json();
+  // Assuming the server response includes sessionId when using API key
+  if (!data.sessionId) {
+      console.error("Server response:", data);
+      throw new Error('MCP 서버 응답에 sessionId가 없습니다. API 키 인증이 성공했는지 확인하세요.');
+  }
   return data.sessionId;
 }
 

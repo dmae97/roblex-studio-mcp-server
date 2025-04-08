@@ -36,7 +36,7 @@ export const roblexApiConnector = {
             ]
           };
         } catch (error) {
-          logger.error('Error searching assets:', error);
+          logger.error('Error searching assets:', { message: error instanceof Error ? error.message : String(error) });
           return {
             content: [
               { 
@@ -76,7 +76,7 @@ export const roblexApiConnector = {
             ]
           };
         } catch (error) {
-          logger.error('Error validating script:', error);
+          logger.error('Error validating script:', { message: error instanceof Error ? error.message : String(error) });
           return {
             content: [
               { 
@@ -120,7 +120,7 @@ export const roblexApiConnector = {
             ]
           };
         } catch (error) {
-          logger.error('Error creating script:', error);
+          logger.error('Error creating script:', { message: error instanceof Error ? error.message : String(error) });
           return {
             content: [
               { 
@@ -156,7 +156,7 @@ export const roblexApiConnector = {
             ]
           };
         } catch (error) {
-          logger.error('Error getting asset:', error);
+          logger.error('Error getting asset:', { message: error instanceof Error ? error.message : String(error) });
           return {
             content: [
               { 
@@ -192,7 +192,7 @@ export const roblexApiConnector = {
             ]
           };
         } catch (error) {
-          logger.error('Error getting user profile:', error);
+          logger.error('Error getting user profile:', { message: error instanceof Error ? error.message : String(error) });
           return {
             content: [
               { 

@@ -13,17 +13,17 @@ export declare const scriptModelSchema: z.ZodObject<{
     enabled: z.ZodDefault<z.ZodBoolean>;
     properties: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
 }, "strip", z.ZodTypeAny, {
-    content: string;
-    type: "ServerScript" | "LocalScript" | "ModuleScript";
     name: string;
     enabled: boolean;
+    content: string;
+    type: "ServerScript" | "LocalScript" | "ModuleScript";
     parent?: string | undefined;
     id?: string | undefined;
     properties?: Record<string, any> | undefined;
 }, {
+    name: string;
     content: string;
     type: "ServerScript" | "LocalScript" | "ModuleScript";
-    name: string;
     enabled?: boolean | undefined;
     parent?: string | undefined;
     id?: string | undefined;
@@ -57,9 +57,9 @@ export declare const uiModelSchema: z.ZodObject<{
     visible: z.ZodDefault<z.ZodBoolean>;
     properties: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
 }, "strip", z.ZodTypeAny, {
-    type: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
     name: string;
     visible: boolean;
+    type: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
     position?: {
         x: number;
         y: number;
@@ -72,8 +72,8 @@ export declare const uiModelSchema: z.ZodObject<{
         height: number;
     } | undefined;
 }, {
-    type: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
     name: string;
+    type: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
     visible?: boolean | undefined;
     position?: {
         x: number;

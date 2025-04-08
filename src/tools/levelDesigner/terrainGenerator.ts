@@ -1,7 +1,7 @@
 /**
  * Generates Lua code for terrain creation
  */
-export function generateTerrainCode(params) {
+export function generateTerrainCode(params: any): string { // TODO: Define a proper interface for params
   const { terrainType, waterEnabled, size } = params;
   
   return `-- Terrain Generator for ${terrainType} terrain
@@ -36,7 +36,7 @@ print("Terrain generation complete")
 /**
  * Generates code specific to terrain type
  */
-function generateTerrainTypeCode(terrainType, size, waterEnabled) {
+function generateTerrainTypeCode(terrainType: any, size: any, waterEnabled: any): string { // TODO: Define proper types
   switch (terrainType) {
     case 'flat':
       return `
@@ -234,14 +234,14 @@ function generateTerrainTypeCode(terrainType, size, waterEnabled) {
 /**
  * Generates a description of the height map for visualization
  */
-export function generateHeightMapDescription(params) {
+export function generateHeightMapDescription(params: any): string { // TODO: Define a proper interface for params
   return `Height map visualization would show a ${params.terrainType} terrain with dimensions ${params.size.x}x${params.size.z}.`;
 }
 
 /**
  * Generates setup instructions for terrain
  */
-export function generateTerrainInstructions(params) {
+export function generateTerrainInstructions(params: any): string { // TODO: Define a proper interface for params
   return `
 ## Terrain Setup Instructions
 

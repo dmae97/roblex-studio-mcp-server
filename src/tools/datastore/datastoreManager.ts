@@ -1,648 +1,163 @@
-import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { McpToolResult, McpTool } from '@modelcontextprotocol/sdk/server/index.js';
-import { logger } from '../../utils/logger.js';
+import { NotFoundError, DatastoreError } from '../../utils/errorHandler';
+import sqlite3 from 'sqlite3';
+import { promisify } from 'util';
+import { z } from 'zod';
+import { logger } from '../../utils/logger';
 
-// Schema for datastore manager parameters
-const DataStoreManagerParamsSchema = z.object({
-  datastoreName: z.string().min(1).describe('Name of the DataStore'),
-  dataStructure: z.string().min(1).describe('JSON structure of the data to be stored'),
-  sessionCaching: z.boolean().default(true).describe('Whether to include session caching logic'),
-  backupStrategy: z.enum(['none', 'periodic', 'onError']).default('onError').describe('Data backup strategy'),
-  playerData: z.boolean().default(true).describe('Whether this is for player data'),
-  customKeys: z.boolean().default(false).describe('Whether to use custom keys instead of player IDs'),
-  keyFormat: z.string().optional().describe('Format for custom keys (e.g., "player_{userId}", "item_{itemId}")'),
-  asyncWrites: z.boolean().default(true).describe('Whether to use async writes to DataStore'),
-  throttlingStrategy: z.enum(['none', 'exponentialBackoff', 'fixedInterval']).default('exponentialBackoff')
-    .describe('Strategy to handle API throttling')
+// Define the structure of a row in the datastore
+interface DatastoreRow {
+  key: string;
+  value: string; // Store values as JSON strings
+}
+
+// Initialize SQLite database connection at the module level
+// Use :memory: for simplicity, replace with a file path for persistence
+const db = new sqlite3.Database(':memory:', (err) => {
+  if (err) {
+    logger.error('Error opening SQLite database:', { error: err });
+    process.exit(1);
+  } else {
+    logger.info('SQLite database connected successfully.');
+    // Create the datastore table if it doesn't exist
+    db.run(
+      'CREATE TABLE IF NOT EXISTS datastore (key TEXT PRIMARY KEY, value TEXT)',
+      (createErr) => {
+        if (createErr) {
+          logger.error('Error creating datastore table:', { error: createErr });
+        } else {
+          logger.info('Datastore table checked/created.');
+        }
+      }
+    );
+  }
 });
 
-// Type for datastore manager parameters
-type DataStoreManagerParams = z.infer<typeof DataStoreManagerParamsSchema>;
+// Promisify db methods *after* db initialization
+const dbAll: (sql: string, ...params: any[]) => Promise<DatastoreRow[]> = promisify(db.all.bind(db));
+const dbGet: (sql: string, ...params: any[]) => Promise<DatastoreRow | undefined> = promisify(db.get.bind(db));
 
-/**
- * Creates a DataStore system for Roblox games
- */
-export const datastoreManager: McpTool<DataStoreManagerParams> = {
-  name: 'create-datastore-system',
-  description: 'Generates complete DataStore code for persistent data management in Roblox games',
-  parameters: DataStoreManagerParamsSchema,
-  
-  execute: async (params: DataStoreManagerParams): Promise<McpToolResult> => {
-    logger.info(`Creating DataStore system with name: ${params.datastoreName}`);
-    
-    try {
-      // Parse data structure from JSON string
-      let dataStructure: Record<string, any>;
-      try {
-        dataStructure = JSON.parse(params.dataStructure);
-      } catch (e) {
-        // If not valid JSON, treat as a description
-        dataStructure = { description: params.dataStructure };
-      }
-      
-      // Generate DataStore module code
-      const moduleCode = generateDataStoreModule(params, dataStructure);
-      
-      // Generate usage example
-      const usageExample = generateUsageExample(params);
-      
-      return {
-        content: {
-          moduleScript: moduleCode,
-          usageExample: usageExample,
-          explanation: generateExplanation(params)
-        }
-      };
-    } catch (error) {
-      logger.error(`Error creating DataStore system: ${error}`);
-      return {
-        error: {
-          message: 'Failed to create DataStore system',
-          details: String(error)
-        }
-      };
+// Custom promisify wrapper for db.run to handle its specific callback signature
+const dbRun: (sql: string, ...params: any[]) => Promise<sqlite3.Statement> = promisify(function (this: sqlite3.Database, sql: string, ...params: any[]) {
+  const callback = params.pop(); // Get the callback injected by promisify
+  this.run(sql, ...params, function (this: sqlite3.Statement, err: Error | null) { // Added types for `this` and `err`
+    if (err) {
+      callback(err, null);
+    } else {
+      callback(null, this); // Resolve with the statement object
     }
-  },
-  
+  });
+}.bind(db));
+
+// Define Zod schemas for tool parameters
+const listKeysSchema = z.object({}); // Simplified for testing
+
+const getValueSchema = z.object({
+    key: z.string().describe('The key of the value to retrieve.'),
+  });
+
+const setValueSchema = z.object({
+    key: z.string().describe('The key to store the value under.'),
+    value: z.any().describe('The value to store (can be any JSON-serializable type).'),
+  });
+
+const deleteKeySchema = z.object({
+    key: z.string().describe('The key to delete from the datastore.'),
+  });
+
+// Datastore Manager implementation
+const datastoreManager = {
+  // Registration method to be called from tools/index.ts
   register: (server: McpServer) => {
-    server.tools.add(datastoreManager);
-    logger.info('DataStore Manager tool registered');
-  }
+    logger.info('Registering Datastore Manager tools...');
+
+    // Register 'datastore-list-keys' tool
+    (server as any).tool(
+      'datastore-list-keys',
+      listKeysSchema.shape, // Pass the shape object
+      async (params: z.infer<typeof listKeysSchema>) => {
+        try {
+          logger.info('Listing datastore keys', { params });
+          // Call promisified dbAll correctly
+          const rows = await dbAll('SELECT key FROM datastore');
+          const keys = rows.map((row) => row.key);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(keys, null, 2) }],
+          };
+        } catch (error: any) {
+          logger.error('Error listing datastore keys', { error: error.message });
+          throw new DatastoreError('Failed to list keys from datastore.');
+        }
+      }
+    );
+
+    // Register 'datastore-get-value' tool
+    (server as any).tool(
+      'datastore-get-value',
+      getValueSchema.shape, // Pass the shape object
+      async ({ key }: z.infer<typeof getValueSchema>) => {
+        try {
+          logger.info('Getting datastore value', { key });
+          // Call promisified dbGet correctly
+          const row = await dbGet('SELECT value FROM datastore WHERE key = ?', key);
+
+          if (row?.value) {
+            let value: any;
+            try {
+              value = JSON.parse(row.value);
+              return { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] };
+            } catch (parseError: any) {
+              logger.warn('Value is not JSON, returning as raw string', { key, value: row.value });
+              return { content: [{ type: 'text', text: row.value }] }; // Return raw string if not JSON
+            }
+          } else {
+            throw new NotFoundError(`Key '${key}' not found in datastore.`);
+          }
+        } catch (error: any) {
+          logger.error('Error getting datastore value', { key, error: error.message });
+          if (error instanceof NotFoundError) throw error;
+          throw new DatastoreError(`Failed to get value for key: ${key}.`);
+        }
+      }
+    );
+
+    // Register 'datastore-set-value' tool
+    (server as any).tool(
+      'datastore-set-value',
+      setValueSchema.shape, // Pass the shape object
+      async ({ key, value }: z.infer<typeof setValueSchema>) => {
+        try {
+          logger.info('Setting datastore value', { key });
+          const jsonValue = JSON.stringify(value);
+          // Call promisified dbRun correctly
+          await dbRun('INSERT OR REPLACE INTO datastore (key, value) VALUES (?, ?)', key, jsonValue);
+          return { content: [{ type: 'text', text: `Successfully set value for key: ${key}` }] };
+        } catch (error: any) {
+          logger.error('Error setting datastore value', { key, error: error.message });
+          throw new DatastoreError(`Failed to set value for key: ${key}.`);
+        }
+      }
+    );
+
+    // Register 'datastore-delete-key' tool
+    (server as any).tool(
+      'datastore-delete-key',
+      deleteKeySchema.shape, // Pass the shape object
+      async ({ key }: z.infer<typeof deleteKeySchema>) => {
+        try {
+          logger.info('Deleting datastore key', { key });
+          // Call promisified dbRun correctly
+          await dbRun('DELETE FROM datastore WHERE key = ?', key);
+          return { content: [{ type: 'text', text: `Successfully deleted key: ${key}` }] };
+        } catch (error: any) {
+          logger.error('Error deleting datastore key', { key, error: error.message });
+          throw new DatastoreError(`Failed to delete key: ${key}.`);
+        }
+      }
+    );
+
+    logger.info('Datastore Manager tools registered.');
+  },
 };
 
-/**
- * Generates the main DataStore module code
- */
-function generateDataStoreModule(params: DataStoreManagerParams, dataStructure: Record<string, any>): string {
-  // Create structure type definition from data structure
-  const typeDefinition = generateTypeDefinition(dataStructure);
-  
-  // Create default data template
-  const defaultData = generateDefaultData(dataStructure);
-  
-  // Create module code with appropriate methods
-  const moduleCode = `--[[
-  DataStore Manager - ${params.datastoreName}
-  
-  A module for managing persistent data using Roblox DataStoreService
-  Generated by Roblox Studio MCP Server
-]]
-
-local DataStoreService = game:GetService("DataStoreService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
--- Ensure this only runs on the server
-if not RunService:IsServer() then
-  error("DataStoreModule should only be required on the server")
-end
-
-local DataStoreModule = {}
-DataStoreModule.__index = DataStoreModule
-
--- Constants
-local DATASTORE_NAME = "${params.datastoreName}"
-local BACKUP_INTERVAL = 300 -- 5 minutes, for periodic backups
-${params.playerData ? 'local AUTOSAVE_INTERVAL = 60 -- 1 minute, for player data' : ''}
-local MAX_RETRIES = 5
-local RETRY_DELAY = 3
-
--- Type definitions
---[[ 
-${typeDefinition}
---]]
-
--- Default data structure
-local DEFAULT_DATA = ${defaultData}
-
--- Create cache table for session data
-${params.sessionCaching ? 'local SessionCache = {}' : '-- Session caching disabled'}
-
-${params.throttlingStrategy !== 'none' ? generateThrottlingCode(params.throttlingStrategy) : '-- No throttling strategy applied'}
-
--- Initialize the module
-function DataStoreModule.new()
-  local self = setmetatable({}, DataStoreModule)
-  
-  -- Get the DataStore
-  local success, result = pcall(function()
-    return DataStoreService:GetDataStore(DATASTORE_NAME)
-  end)
-  
-  if success then
-    self.DataStore = result
-    self.IsReady = true
-    print("DataStore '" .. DATASTORE_NAME .. "' initialized successfully")
-  else
-    self.IsReady = false
-    warn("Failed to initialize DataStore: " .. tostring(result))
-  end
-  
-  ${params.backupStrategy === 'periodic' ? generatePeriodicBackupCode() : '-- Periodic backup not enabled'}
-  
-  return self
-end
-
--- Get data for a key
-function DataStoreModule:GetData(key)
-  if not self.IsReady then
-    warn("DataStore not ready")
-    return deepCopy(DEFAULT_DATA)
-  end
-  
-  ${params.sessionCaching ? `
-  -- Check cache first
-  if SessionCache[key] then
-    return deepCopy(SessionCache[key])
-  end` : '-- Session caching disabled'}
-  
-  -- Attempt to get data from DataStore
-  local success, data
-  
-  ${params.throttlingStrategy !== 'none' ? `
-  success, data = self:RetryWithThrottling(function()
-    return self.DataStore:GetAsync(key)
-  end)` : `
-  success, data = pcall(function()
-    return self.DataStore:GetAsync(key)
-  end)`}
-  
-  if success and data then
-    ${params.sessionCaching ? 'SessionCache[key] = deepCopy(data)' : '-- Session caching disabled'}
-    return deepCopy(data)
-  else
-    if not success then
-      warn("Failed to get data for key '" .. key .. "': " .. tostring(data))
-    end
-    return deepCopy(DEFAULT_DATA)
-  end
-end
-
--- Save data for a key
-function DataStoreModule:SaveData(key, data)
-  if not self.IsReady then
-    warn("DataStore not ready")
-    return false
-  end
-  
-  -- Validate data structure
-  data = validateData(data)
-  
-  ${params.sessionCaching ? '-- Update cache\nSessionCache[key] = deepCopy(data)' : '-- Session caching disabled'}
-  
-  ${params.asyncWrites ? `
-  -- Write async to not block
-  task.spawn(function()
-    self:WriteToDataStore(key, data)
-  end)
-  return true
-  ` : `
-  -- Write synchronously
-  return self:WriteToDataStore(key, data)
-  `}
-end
-
--- Internal function to write to DataStore
-function DataStoreModule:WriteToDataStore(key, data)
-  local success, result
-  
-  ${params.throttlingStrategy !== 'none' ? `
-  success, result = self:RetryWithThrottling(function()
-    return self.DataStore:SetAsync(key, data)
-  end)` : `
-  success, result = pcall(function()
-    return self.DataStore:SetAsync(key, data)
-  end)`}
-  
-  if not success then
-    warn("Failed to save data for key '" .. key .. "': " .. tostring(result))
-    ${params.backupStrategy === 'onError' ? 'self:CreateBackup(key, data)' : '-- No backup on error'}
-    return false
-  end
-  
-  return true
-end
-
-${params.backupStrategy !== 'none' ? generateBackupFunctions() : '-- No backup strategy enabled'}
-
-${params.playerData ? generatePlayerSpecificFunctions(params) : '-- Not player data specific'}
-
--- Utility functions
-function deepCopy(original)
-  local copy = {}
-  for key, value in pairs(original) do
-    if type(value) == "table" then
-      copy[key] = deepCopy(value)
-    else
-      copy[key] = value
-    end
-  end
-  return copy
-end
-
-function validateData(data)
-  if type(data) ~= "table" then
-    warn("Invalid data type provided to DataStore, using default")
-    return deepCopy(DEFAULT_DATA)
-  end
-  
-  local validated = deepCopy(DEFAULT_DATA)
-  
-  -- Merge provided data with default data
-  for key, defaultValue in pairs(validated) do
-    if data[key] ~= nil then
-      if type(data[key]) == type(defaultValue) then
-        if type(defaultValue) == "table" then
-          -- For nested tables, recursively validate
-          for subKey, subValue in pairs(defaultValue) do
-            if data[key][subKey] ~= nil and type(data[key][subKey]) == type(subValue) then
-              validated[key][subKey] = data[key][subKey]
-            end
-          end
-        else
-          validated[key] = data[key]
-        end
-      end
-    end
-  end
-  
-  return validated
-end
-
-return DataStoreModule
-`;
-
-  return moduleCode;
-}
-
-/**
- * Generates player-specific functions for the DataStore
- */
-function generatePlayerSpecificFunctions(params: DataStoreManagerParams): string {
-  const keyFormat = params.customKeys && params.keyFormat 
-    ? params.keyFormat.replace('{userId}', '" .. tostring(player.UserId) .. "')
-    : 'Player_" .. tostring(player.UserId)';
-  
-  return `
--- Player-specific functions
-function DataStoreModule:GetPlayerData(player)
-  if not player or typeof(player) ~= "Instance" or not player:IsA("Player") then
-    warn("Invalid player provided to GetPlayerData")
-    return deepCopy(DEFAULT_DATA)
-  end
-  
-  local key = "${keyFormat}"
-  return self:GetData(key)
-end
-
-function DataStoreModule:SavePlayerData(player, data)
-  if not player or typeof(player) ~= "Instance" or not player:IsA("Player") then
-    warn("Invalid player provided to SavePlayerData")
-    return false
-  end
-  
-  local key = "${keyFormat}"
-  return self:SaveData(key, data)
-end
-
--- Auto-save system for player data
-function DataStoreModule:SetupPlayerAutoSave()
-  local autosaveConnections = {}
-  
-  -- When player joins
-  Players.PlayerAdded:Connect(function(player)
-    -- Load their data
-    self:GetPlayerData(player)
-    
-    -- Set up auto-save
-    local connection = task.spawn(function()
-      while player and player.Parent do
-        wait(AUTOSAVE_INTERVAL)
-        local playerData = SessionCache["${keyFormat}"]
-        if playerData then
-          self:SavePlayerData(player, playerData)
-          print("Auto-saved data for player: " .. player.Name)
-        end
-      end
-    end)
-    
-    autosaveConnections[player.UserId] = connection
-  end)
-  
-  -- When player leaves
-  Players.PlayerRemoving:Connect(function(player)
-    -- Save their data one last time
-    local playerData = SessionCache["${keyFormat}"]
-    if playerData then
-      self:SavePlayerData(player, playerData)
-      print("Saved data for player: " .. player.Name .. " (leaving)")
-    end
-    
-    -- Clean up
-    ${params.sessionCaching ? 'SessionCache["${keyFormat}"] = nil' : '-- Session caching disabled'}
-    if autosaveConnections[player.UserId] then
-      task.cancel(autosaveConnections[player.UserId])
-      autosaveConnections[player.UserId] = nil
-    end
-  end)
-end`;
-}
-
-/**
- * Generates backup functions based on the backup strategy
- */
-function generateBackupFunctions(): string {
-  return `
--- Backup functions
-function DataStoreModule:CreateBackup(key, data)
-  local backupStore = DataStoreService:GetDataStore(DATASTORE_NAME .. "_Backup")
-  local timestamp = os.time()
-  local backupKey = key .. "_" .. tostring(timestamp)
-  
-  local success, result = pcall(function()
-    return backupStore:SetAsync(backupKey, data)
-  end)
-  
-  if success then
-    print("Created backup for key '" .. key .. "' with backup key '" .. backupKey .. "'")
-  else
-    warn("Failed to create backup: " .. tostring(result))
-  end
-end
-
-function DataStoreModule:GetLatestBackup(key)
-  local backupStore = DataStoreService:GetDataStore(DATASTORE_NAME .. "_Backup")
-  local latestData = nil
-  local latestTimestamp = 0
-  
-  local success, keyPages = pcall(function()
-    return backupStore:ListKeysAsync()
-  end)
-  
-  if success then
-    while true do
-      for _, fullKey in ipairs(keyPages:GetCurrentPage()) do
-        if string.find(fullKey, key .. "_") == 1 then
-          local timestamp = tonumber(string.match(fullKey, key .. "_(%d+)"))
-          
-          if timestamp and timestamp > latestTimestamp then
-            local backupSuccess, backupData = pcall(function()
-              return backupStore:GetAsync(fullKey)
-            end)
-            
-            if backupSuccess and backupData then
-              latestData = backupData
-              latestTimestamp = timestamp
-            end
-          end
-        end
-      end
-      
-      if keyPages.IsFinished then
-        break
-      end
-      
-      pcall(function()
-        keyPages:AdvanceToNextPageAsync()
-      end)
-    end
-  end
-  
-  return latestData
-end`;
-}
-
-/**
- * Generates code for periodic backup
- */
-function generatePeriodicBackupCode(): string {
-  return `
-  -- Set up periodic backup
-  task.spawn(function()
-    while true do
-      wait(BACKUP_INTERVAL)
-      if self.IsReady then
-        self:PerformBackup()
-      end
-    end
-  end)`;
-}
-
-/**
- * Generates throttling code based on the strategy
- */
-function generateThrottlingCode(strategy: string): string {
-  if (strategy === 'exponentialBackoff') {
-    return `
--- Throttling function with exponential backoff
-function DataStoreModule:RetryWithThrottling(func)
-  local retries = 0
-  local baseDelay = RETRY_DELAY
-  
-  while retries < MAX_RETRIES do
-    local success, result = pcall(func)
-    
-    if success then
-      return true, result
-    else
-      local errorMessage = tostring(result)
-      
-      -- Check if error is due to throttling
-      if string.find(errorMessage, "throttled") then
-        retries = retries + 1
-        local delay = baseDelay * (2 ^ retries)
-        warn("DataStore request throttled. Retrying in " .. delay .. " seconds...")
-        wait(delay)
-      else
-        -- For other errors, don't retry
-        return false, errorMessage
-      end
-    end
-  end
-  
-  return false, "Max retries exceeded for DataStore operation"
-end`;
-  } else if (strategy === 'fixedInterval') {
-    return `
--- Throttling function with fixed interval
-function DataStoreModule:RetryWithThrottling(func)
-  local retries = 0
-  
-  while retries < MAX_RETRIES do
-    local success, result = pcall(func)
-    
-    if success then
-      return true, result
-    else
-      local errorMessage = tostring(result)
-      
-      -- Check if error is due to throttling
-      if string.find(errorMessage, "throttled") then
-        retries = retries + 1
-        warn("DataStore request throttled. Retrying in " .. RETRY_DELAY .. " seconds...")
-        wait(RETRY_DELAY)
-      else
-        -- For other errors, don't retry
-        return false, errorMessage
-      end
-    end
-  end
-  
-  return false, "Max retries exceeded for DataStore operation"
-end`;
-  }
-  
-  return '';
-}
-
-/**
- * Generates type definition from data structure
- */
-function generateTypeDefinition(dataStructure: Record<string, any>): string {
-  let typeStr = "type DataStructure = {\n";
-  
-  for (const [key, value] of Object.entries(dataStructure)) {
-    const type = typeof value;
-    if (type === 'object' && value !== null) {
-      typeStr += `  ${key}: {\n`;
-      for (const [subKey, subValue] of Object.entries(value)) {
-        typeStr += `    ${subKey}: ${getLuaType(typeof subValue)},\n`;
-      }
-      typeStr += "  },\n";
-    } else {
-      typeStr += `  ${key}: ${getLuaType(type)},\n`;
-    }
-  }
-  
-  typeStr += "}";
-  return typeStr;
-}
-
-/**
- * Converts JavaScript types to Lua types
- */
-function getLuaType(jsType: string): string {
-  switch (jsType) {
-    case 'string': return 'string';
-    case 'number': return 'number';
-    case 'boolean': return 'boolean';
-    case 'object': return 'table';
-    default: return 'any';
-  }
-}
-
-/**
- * Generates default data structure in Lua format
- */
-function generateDefaultData(dataStructure: Record<string, any>): string {
-  return convertToLuaTable(dataStructure);
-}
-
-/**
- * Converts JavaScript object to Lua table
- */
-function convertToLuaTable(obj: Record<string, any>): string {
-  let result = "{\n";
-  
-  for (const [key, value] of Object.entries(obj)) {
-    if (typeof value === 'object' && value !== null) {
-      result += `  ${key} = ${convertToLuaTable(value)},\n`;
-    } else if (typeof value === 'string') {
-      result += `  ${key} = "${value}",\n`;
-    } else if (typeof value === 'number' || typeof value === 'boolean') {
-      result += `  ${key} = ${value},\n`;
-    } else {
-      result += `  ${key} = nil,\n`;
-    }
-  }
-  
-  result += "}";
-  return result;
-}
-
-/**
- * Generates usage example
- */
-function generateUsageExample(params: DataStoreManagerParams): string {
-  return `--[[
-  Usage Example for ${params.datastoreName} DataStore
-]]
-
-local DataStoreModule = require(ReplicatedStorage.DataStoreModule)
-
--- Initialize the DataStore module
-local dataStore = DataStoreModule.new()
-
-${params.playerData ? `
--- For player data
-local Players = game:GetService("Players")
-
--- Set up auto-save for all players
-dataStore:SetupPlayerAutoSave()
-
--- Example: When player joins
-Players.PlayerAdded:Connect(function(player)
-  -- Get player's data
-  local playerData = dataStore:GetPlayerData(player)
-  
-  -- Use the data
-  print("Player " .. player.Name .. " has " .. playerData.currency .. " coins")
-  
-  -- Update the data
-  playerData.currency = playerData.currency + 100
-  dataStore:SavePlayerData(player, playerData)
-end)
-` : `
--- For custom data
-local KEY = "GameState"
-
--- Get data
-local gameData = dataStore:GetData(KEY)
-
--- Use the data
-print("Game state: " .. gameData.state)
-
--- Update the data
-gameData.state = "active"
-gameData.lastUpdated = os.time()
-dataStore:SaveData(KEY, gameData)
-`}`;
-}
-
-/**
- * Generates explanation for the DataStore system
- */
-function generateExplanation(params: DataStoreManagerParams): string {
-  return `# DataStore System Explanation
-
-This DataStore module provides a robust system for ${params.playerData ? 'player data persistence' : 'game data persistence'} in your Roblox game.
-
-## Features:
-
-1. **Persistent Data Storage**: Uses Roblox's DataStoreService for reliable data persistence.
-${params.sessionCaching ? '2. **Session Caching**: Reduces DataStore API calls by caching data in memory.' : ''}
-${params.backupStrategy !== 'none' ? `3. **Backup System**: Implements ${params.backupStrategy === 'periodic' ? 'periodic' : 'on-error'} backups to prevent data loss.` : ''}
-4. **Data Validation**: Ensures data structure integrity.
-${params.throttlingStrategy !== 'none' ? `5. **Throttling Management**: Handles DataStore API throttling with ${params.throttlingStrategy} strategy.` : ''}
-${params.playerData ? '6. **Player Auto-Save**: Automatically saves player data at regular intervals.' : ''}
-
-## Implementation:
-
-1. Place the **moduleScript** in ReplicatedStorage.
-2. Use the **usageExample** as a reference for implementing in your game.
-
-## Best Practices:
-
-1. Minimize DataStore calls to avoid hitting API limits.
-2. Always validate data before saving.
-3. Implement proper error handling.
-4. Test thoroughly in a development environment.
-
-## Additional Notes:
-
-- DataStore operations can fail due to various reasons (network issues, throttling).
-- Consider using OrderedDataStores for leaderboards or time-series data.
-- For large amounts of data, consider splitting across multiple DataStores.`;
-}
+export default datastoreManager;

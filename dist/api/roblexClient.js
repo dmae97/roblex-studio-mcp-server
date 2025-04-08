@@ -1,8 +1,11 @@
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createRoblexApiClient = exports.RoblexApiClient = void 0;
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Client for interacting with the Roblex Studio API
  */
-export class RoblexApiClient {
+class RoblexApiClient {
     apiBaseUrl;
     apiKey;
     /**
@@ -13,7 +16,7 @@ export class RoblexApiClient {
     constructor(apiBaseUrl, apiKey) {
         this.apiBaseUrl = apiBaseUrl;
         this.apiKey = apiKey;
-        logger.info('Roblex API client initialized');
+        logger_js_1.logger.info('Roblex API client initialized');
     }
     /**
      * Make an authenticated request to the Roblex API
@@ -35,18 +38,18 @@ export class RoblexApiClient {
                 headers,
                 body: body ? JSON.stringify(body) : undefined
             };
-            logger.debug(`Making ${method} request to ${url}`);
+            logger_js_1.logger.debug(`Making ${method} request to ${url}`);
             const response = await fetch(url, options);
             if (!response.ok) {
                 const errorText = await response.text();
-                logger.error(`Roblex API error (${response.status}): ${errorText}`);
+                logger_js_1.logger.error(`Roblex API error (${response.status}): ${errorText}`);
                 throw new Error(`Roblex API error (${response.status}): ${errorText}`);
             }
             const data = await response.json();
             return data;
         }
         catch (error) {
-            logger.error(`Error communicating with Roblex API: ${error instanceof Error ? error.message : String(error)}`);
+            logger_js_1.logger.error(`Error communicating with Roblex API: ${error instanceof Error ? error.message : String(error)}`);
             throw error;
         }
     }
@@ -126,16 +129,18 @@ export class RoblexApiClient {
         return this.request(`/users/${userId}/profile`);
     }
 }
+exports.RoblexApiClient = RoblexApiClient;
 /**
  * Create a Roblex API client with credentials from environment variables
  * @returns Configured Roblex API client
  */
-export function createRoblexApiClient() {
+function createRoblexApiClient() {
     const apiBaseUrl = process.env.ROBLEX_API_BASE_URL || 'https://api.roblexstudio.com/v1';
     const apiKey = process.env.ROBLEX_API_KEY || '';
     if (!apiKey) {
-        logger.warn('No Roblex API key provided, API calls will likely fail');
+        logger_js_1.logger.warn('No Roblex API key provided, API calls will likely fail');
     }
     return new RoblexApiClient(apiBaseUrl, apiKey);
 }
+exports.createRoblexApiClient = createRoblexApiClient;
 //# sourceMappingURL=roblexClient.js.map

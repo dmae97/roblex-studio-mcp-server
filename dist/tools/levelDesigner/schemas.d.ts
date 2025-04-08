@@ -29,11 +29,11 @@ export declare const levelDesignSchema: z.ZodObject<{
     }>>;
 }, "strip", z.ZodTypeAny, {
     size: "custom" | "small" | "medium" | "large";
-    levelType: "platformer" | "custom" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
+    levelType: "custom" | "platformer" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
     includePlayerSpawns: boolean;
     includeCheckpoints: boolean;
-    difficulty?: "medium" | "easy" | "hard" | "expert" | undefined;
     theme?: string | undefined;
+    difficulty?: "medium" | "easy" | "hard" | "expert" | undefined;
     features?: string[] | undefined;
     customParameters?: Record<string, string> | undefined;
     environmentSettings?: {
@@ -44,11 +44,11 @@ export declare const levelDesignSchema: z.ZodObject<{
     } | undefined;
 }, {
     size: "custom" | "small" | "medium" | "large";
-    levelType: "platformer" | "custom" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
-    difficulty?: "medium" | "easy" | "hard" | "expert" | undefined;
+    levelType: "custom" | "platformer" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
     includePlayerSpawns?: boolean | undefined;
     includeCheckpoints?: boolean | undefined;
     theme?: string | undefined;
+    difficulty?: "medium" | "easy" | "hard" | "expert" | undefined;
     features?: string[] | undefined;
     customParameters?: Record<string, string> | undefined;
     environmentSettings?: {

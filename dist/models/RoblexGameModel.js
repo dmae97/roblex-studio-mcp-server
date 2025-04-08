@@ -1,10 +1,13 @@
-import { RoblexModel } from './RoblexModel.js';
-import { logger } from '../utils/logger.js';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RoblexGameModel = void 0;
+const RoblexModel_js_1 = require("./RoblexModel.js");
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Specialized model for game-related components
  * Extends the base MCP Model with game-specific functionality
  */
-export class RoblexGameModel extends RoblexModel {
+class RoblexGameModel extends RoblexModel_js_1.RoblexModel {
     /**
      * Create a new game model
      * @param name Model name
@@ -25,7 +28,7 @@ export class RoblexGameModel extends RoblexModel {
             ...initialState
         };
         super(name, gameState);
-        logger.debug(`Game model created: ${name}`);
+        logger_js_1.logger.debug(`Game model created: ${name}`);
     }
     /**
      * Set the position of this game object
@@ -154,4 +157,5 @@ export class RoblexGameModel extends RoblexModel {
         return this.getValue('enabled', true);
     }
 }
+exports.RoblexGameModel = RoblexGameModel;
 //# sourceMappingURL=RoblexGameModel.js.map

@@ -2,12 +2,21 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { logger } from '../utils/logger.js';
 
+// Define interface for the parameters based on Zod schema
+interface CodeGeneratorParams {
+  scriptType: 'ServerScript' | 'LocalScript' | 'ModuleScript';
+  functionality: string;
+  includeComments: boolean;
+  targetRoblexVersion?: string;
+}
+
+
 /**
  * Tool for generating Roblex code/scripts based on user specifications
  */
 export const codeGenerator = {
   register: (server: McpServer) => {
-    server.tool(
+    (server as any).tool(
       'generate-roblex-code',
       {
         // Input schema using Zod
@@ -16,7 +25,7 @@ export const codeGenerator = {
         includeComments: z.boolean().default(true).describe('Whether to include comments in the code'),
         targetRoblexVersion: z.string().optional().describe('Target Roblex version')
       },
-      async ({ scriptType, functionality, includeComments, targetRoblexVersion }) => {
+      async ({ scriptType, functionality, includeComments, targetRoblexVersion }: CodeGeneratorParams) => {
         logger.info(`Generating ${scriptType} for: ${functionality}`);
         
         try {
@@ -89,7 +98,8 @@ return module
             ]
           };
         } catch (error) {
-          logger.error('Error generating code:', error);
+          // Log only the error message for safety, consistent with the return block
+          logger.error(`Error generating code: ${error instanceof Error ? error.message : String(error)}`);
           return {
             content: [
               { 

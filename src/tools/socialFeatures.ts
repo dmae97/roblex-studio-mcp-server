@@ -1,6 +1,6 @@
-import { Tool } from '@modelcontextprotocol/sdk';
+// import { Tool } from '@modelcontextprotocol/sdk'; // Remove invalid import
 
-export const socialFeaturesGenerator: Tool = {
+export const socialFeaturesGenerator = {
   name: 'create-social-features',
   description: 'Roblox 게임을 위한 소셜 기능 생성',
   parameters: {
@@ -35,7 +35,7 @@ export const socialFeaturesGenerator: Tool = {
       }
     }
   },
-  execute: async (params) => {
+  execute: async (params: any) => {
     try {
       console.log(`Generating social feature: ${params.featureType} with complexity: ${params.complexity || 'basic'}`);
       
@@ -264,7 +264,7 @@ return LeaderboardSystem`
       };
       
       // Prepare result based on the selected feature
-      const featureTemplate = featureTemplates[params.featureType] || {
+      const featureTemplate = (featureTemplates as any)[(params as any).featureType] || {
         description: `${params.featureType} 소셜 기능`,
         serverScript: `-- Server script for ${params.featureType}`,
         clientScript: `-- Client script for ${params.featureType}`
@@ -349,7 +349,8 @@ return LeaderboardSystem`
       };
     } catch (error) {
       console.error('Error in social features generator:', error);
-      throw new Error(`Social features generation failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Social features generation failed: ${errorMessage}`);
     }
   }
 };
