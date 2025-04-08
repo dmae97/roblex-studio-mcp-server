@@ -1,6 +1,20 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '../server/McpServer.js';
 import { z } from 'zod';
 import { logger } from '../utils/logger.js';
+
+// Define the input schema for the script validator tool
+const ScriptValidatorInputSchema = z.object({
+  scriptContent: z.string().min(1, { message: 'Script content cannot be empty' })
+    .describe('The Lua script content to validate'),
+  scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript'])
+    .describe('Type of script'),
+  checkBestPractices: z.boolean().default(true)
+    .describe('Whether to check for best practices'),
+  checkPerformance: z.boolean().default(false)
+    .describe('Whether to check for performance issues')
+});
+
+type ScriptValidatorInput = z.infer<typeof ScriptValidatorInputSchema>;
 
 /**
  * Tool for validating Roblex scripts for syntax errors and best practices
@@ -9,17 +23,14 @@ export const scriptValidator = {
   register: (server: McpServer) => {
     server.tool(
       'validate-roblex-script',
-      {
-        // Input schema using Zod
-        scriptContent: z.string().describe('The Lua script content to validate'),
-        scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']).describe('Type of script'),
-        checkBestPractices: z.boolean().default(true).describe('Whether to check for best practices'),
-        checkPerformance: z.boolean().default(false).describe('Whether to check for performance issues')
-      },
-      async ({ scriptContent, scriptType, checkBestPractices, checkPerformance }) => {
-        logger.info(`Validating ${scriptType} (${scriptContent.length} characters)`);
-        
+      async (params: unknown) => {
         try {
+          // Validate input using the schema
+          const validatedInput = ScriptValidatorInputSchema.parse(params);
+          const { scriptContent, scriptType, checkBestPractices, checkPerformance } = validatedInput;
+          
+          logger.info(`Validating ${scriptType} (${scriptContent.length} characters)`);
+          
           // In a real implementation, this would use a Lua parser or linter
           // Here we'll do some basic validation with regex
           const issues = [];
