@@ -7,23 +7,23 @@ const errorHandler_1 = require("../../utils/errorHandler");
 const sqlite3_1 = __importDefault(require("sqlite3"));
 const util_1 = require("util");
 const zod_1 = require("zod");
-const logger_1 = require("../../utils/logger");
+const logger_js_1 = require("../../utils/logger.js");
 // Initialize SQLite database connection at the module level
 // Use :memory: for simplicity, replace with a file path for persistence
 const db = new sqlite3_1.default.Database(':memory:', (err) => {
     if (err) {
-        logger_1.logger.error('Error opening SQLite database:', { error: err });
+        logger_js_1.logger.error('Error opening SQLite database:', { error: err });
         process.exit(1);
     }
     else {
-        logger_1.logger.info('SQLite database connected successfully.');
+        logger_js_1.logger.info('SQLite database connected successfully.');
         // Create the datastore table if it doesn't exist
         db.run('CREATE TABLE IF NOT EXISTS datastore (key TEXT PRIMARY KEY, value TEXT)', (createErr) => {
             if (createErr) {
-                logger_1.logger.error('Error creating datastore table:', { error: createErr });
+                logger_js_1.logger.error('Error creating datastore table:', { error: createErr });
             }
             else {
-                logger_1.logger.info('Datastore table checked/created.');
+                logger_js_1.logger.info('Datastore table checked/created.');
             }
         });
     }
@@ -59,12 +59,12 @@ const deleteKeySchema = zod_1.z.object({
 const datastoreManager = {
     // Registration method to be called from tools/index.ts
     register: (server) => {
-        logger_1.logger.info('Registering Datastore Manager tools...');
+        logger_js_1.logger.info('Registering Datastore Manager tools...');
         // Register 'datastore-list-keys' tool
         server.tool('datastore-list-keys', listKeysSchema.shape, // Pass the shape object
         async (params) => {
             try {
-                logger_1.logger.info('Listing datastore keys', { params });
+                logger_js_1.logger.info('Listing datastore keys', { params });
                 // Call promisified dbAll correctly
                 const rows = await dbAll('SELECT key FROM datastore');
                 const keys = rows.map((row) => row.key);
@@ -73,7 +73,7 @@ const datastoreManager = {
                 };
             }
             catch (error) {
-                logger_1.logger.error('Error listing datastore keys', { error: error.message });
+                logger_js_1.logger.error('Error listing datastore keys', { error: error.message });
                 throw new errorHandler_1.DatastoreError('Failed to list keys from datastore.');
             }
         });
@@ -81,7 +81,7 @@ const datastoreManager = {
         server.tool('datastore-get-value', getValueSchema.shape, // Pass the shape object
         async ({ key }) => {
             try {
-                logger_1.logger.info('Getting datastore value', { key });
+                logger_js_1.logger.info('Getting datastore value', { key });
                 // Call promisified dbGet correctly
                 const row = await dbGet('SELECT value FROM datastore WHERE key = ?', key);
                 if (row?.value) {
@@ -91,7 +91,7 @@ const datastoreManager = {
                         return { content: [{ type: 'text', text: JSON.stringify(value, null, 2) }] };
                     }
                     catch (parseError) {
-                        logger_1.logger.warn('Value is not JSON, returning as raw string', { key, value: row.value });
+                        logger_js_1.logger.warn('Value is not JSON, returning as raw string', { key, value: row.value });
                         return { content: [{ type: 'text', text: row.value }] }; // Return raw string if not JSON
                     }
                 }
@@ -100,7 +100,7 @@ const datastoreManager = {
                 }
             }
             catch (error) {
-                logger_1.logger.error('Error getting datastore value', { key, error: error.message });
+                logger_js_1.logger.error('Error getting datastore value', { key, error: error.message });
                 if (error instanceof errorHandler_1.NotFoundError)
                     throw error;
                 throw new errorHandler_1.DatastoreError(`Failed to get value for key: ${key}.`);
@@ -110,14 +110,14 @@ const datastoreManager = {
         server.tool('datastore-set-value', setValueSchema.shape, // Pass the shape object
         async ({ key, value }) => {
             try {
-                logger_1.logger.info('Setting datastore value', { key });
+                logger_js_1.logger.info('Setting datastore value', { key });
                 const jsonValue = JSON.stringify(value);
                 // Call promisified dbRun correctly
                 await dbRun('INSERT OR REPLACE INTO datastore (key, value) VALUES (?, ?)', key, jsonValue);
                 return { content: [{ type: 'text', text: `Successfully set value for key: ${key}` }] };
             }
             catch (error) {
-                logger_1.logger.error('Error setting datastore value', { key, error: error.message });
+                logger_js_1.logger.error('Error setting datastore value', { key, error: error.message });
                 throw new errorHandler_1.DatastoreError(`Failed to set value for key: ${key}.`);
             }
         });
@@ -125,17 +125,17 @@ const datastoreManager = {
         server.tool('datastore-delete-key', deleteKeySchema.shape, // Pass the shape object
         async ({ key }) => {
             try {
-                logger_1.logger.info('Deleting datastore key', { key });
+                logger_js_1.logger.info('Deleting datastore key', { key });
                 // Call promisified dbRun correctly
                 await dbRun('DELETE FROM datastore WHERE key = ?', key);
                 return { content: [{ type: 'text', text: `Successfully deleted key: ${key}` }] };
             }
             catch (error) {
-                logger_1.logger.error('Error deleting datastore key', { key, error: error.message });
+                logger_js_1.logger.error('Error deleting datastore key', { key, error: error.message });
                 throw new errorHandler_1.DatastoreError(`Failed to delete key: ${key}.`);
             }
         });
-        logger_1.logger.info('Datastore Manager tools registered.');
+        logger_js_1.logger.info('Datastore Manager tools registered.');
     },
 };
 exports.default = datastoreManager;

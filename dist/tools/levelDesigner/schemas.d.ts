@@ -17,46 +17,46 @@ export declare const levelDesignSchema: z.ZodObject<{
         gravity: z.ZodOptional<z.ZodNumber>;
         ambientSounds: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     }, "strip", z.ZodTypeAny, {
-        weather?: "custom" | "fog" | "clear" | "rain" | "snow" | undefined;
-        gravity?: number | undefined;
-        lighting?: "custom" | "day" | "night" | "dawn" | "dusk" | undefined;
-        ambientSounds?: string[] | undefined;
+        weather?: "custom" | "clear" | "fog" | "rain" | "snow";
+        gravity?: number;
+        lighting?: "custom" | "day" | "night" | "dawn" | "dusk";
+        ambientSounds?: string[];
     }, {
-        weather?: "custom" | "fog" | "clear" | "rain" | "snow" | undefined;
-        gravity?: number | undefined;
-        lighting?: "custom" | "day" | "night" | "dawn" | "dusk" | undefined;
-        ambientSounds?: string[] | undefined;
+        weather?: "custom" | "clear" | "fog" | "rain" | "snow";
+        gravity?: number;
+        lighting?: "custom" | "day" | "night" | "dawn" | "dusk";
+        ambientSounds?: string[];
     }>>;
 }, "strip", z.ZodTypeAny, {
-    size: "custom" | "small" | "medium" | "large";
-    levelType: "custom" | "platformer" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
-    includePlayerSpawns: boolean;
-    includeCheckpoints: boolean;
-    theme?: string | undefined;
-    difficulty?: "medium" | "easy" | "hard" | "expert" | undefined;
-    features?: string[] | undefined;
-    customParameters?: Record<string, string> | undefined;
+    size?: "custom" | "small" | "medium" | "large";
+    levelType?: "custom" | "platformer" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
+    includePlayerSpawns?: boolean;
+    includeCheckpoints?: boolean;
+    theme?: string;
+    difficulty?: "medium" | "easy" | "hard" | "expert";
+    features?: string[];
+    customParameters?: Record<string, string>;
     environmentSettings?: {
-        weather?: "custom" | "fog" | "clear" | "rain" | "snow" | undefined;
-        gravity?: number | undefined;
-        lighting?: "custom" | "day" | "night" | "dawn" | "dusk" | undefined;
-        ambientSounds?: string[] | undefined;
-    } | undefined;
+        weather?: "custom" | "clear" | "fog" | "rain" | "snow";
+        gravity?: number;
+        lighting?: "custom" | "day" | "night" | "dawn" | "dusk";
+        ambientSounds?: string[];
+    };
 }, {
-    size: "custom" | "small" | "medium" | "large";
-    levelType: "custom" | "platformer" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
-    includePlayerSpawns?: boolean | undefined;
-    includeCheckpoints?: boolean | undefined;
-    theme?: string | undefined;
-    difficulty?: "medium" | "easy" | "hard" | "expert" | undefined;
-    features?: string[] | undefined;
-    customParameters?: Record<string, string> | undefined;
+    size?: "custom" | "small" | "medium" | "large";
+    levelType?: "custom" | "platformer" | "maze" | "open-world" | "tower-defense" | "obstacle-course" | "racing";
+    includePlayerSpawns?: boolean;
+    includeCheckpoints?: boolean;
+    theme?: string;
+    difficulty?: "medium" | "easy" | "hard" | "expert";
+    features?: string[];
+    customParameters?: Record<string, string>;
     environmentSettings?: {
-        weather?: "custom" | "fog" | "clear" | "rain" | "snow" | undefined;
-        gravity?: number | undefined;
-        lighting?: "custom" | "day" | "night" | "dawn" | "dusk" | undefined;
-        ambientSounds?: string[] | undefined;
-    } | undefined;
+        weather?: "custom" | "clear" | "fog" | "rain" | "snow";
+        gravity?: number;
+        lighting?: "custom" | "day" | "night" | "dawn" | "dusk";
+        ambientSounds?: string[];
+    };
 }>;
 /**
  * Validation schema for terrain generation parameters
@@ -70,38 +70,38 @@ export declare const terrainSchema: z.ZodObject<{
         y: z.ZodNumber;
         z: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        x: number;
-        y: number;
-        z: number;
+        x?: number;
+        y?: number;
+        z?: number;
     }, {
-        x: number;
-        y: number;
-        z: number;
+        x?: number;
+        y?: number;
+        z?: number;
     }>;
     detailLevel: z.ZodOptional<z.ZodEnum<["low", "medium", "high"]>>;
     seed: z.ZodOptional<z.ZodNumber>;
 }, "strip", z.ZodTypeAny, {
-    size: {
-        x: number;
-        y: number;
-        z: number;
+    size?: {
+        x?: number;
+        y?: number;
+        z?: number;
     };
-    terrainType: "flat" | "custom" | "hills" | "mountains" | "islands" | "caves";
-    waterEnabled: boolean;
-    materialSettings?: Record<string, string> | undefined;
-    detailLevel?: "high" | "medium" | "low" | undefined;
-    seed?: number | undefined;
+    terrainType?: "flat" | "custom" | "hills" | "mountains" | "islands" | "caves";
+    waterEnabled?: boolean;
+    materialSettings?: Record<string, string>;
+    detailLevel?: "low" | "medium" | "high";
+    seed?: number;
 }, {
-    size: {
-        x: number;
-        y: number;
-        z: number;
+    size?: {
+        x?: number;
+        y?: number;
+        z?: number;
     };
-    terrainType: "flat" | "custom" | "hills" | "mountains" | "islands" | "caves";
-    waterEnabled?: boolean | undefined;
-    materialSettings?: Record<string, string> | undefined;
-    detailLevel?: "high" | "medium" | "low" | undefined;
-    seed?: number | undefined;
+    terrainType?: "flat" | "custom" | "hills" | "mountains" | "islands" | "caves";
+    waterEnabled?: boolean;
+    materialSettings?: Record<string, string>;
+    detailLevel?: "low" | "medium" | "high";
+    seed?: number;
 }>;
 /**
  * Validation schema for environment settings parameters
@@ -116,30 +116,30 @@ export declare const environmentSchema: z.ZodObject<{
             top: z.ZodOptional<z.ZodString>;
             bottom: z.ZodOptional<z.ZodString>;
         }, "strip", z.ZodTypeAny, {
-            top?: string | undefined;
-            bottom?: string | undefined;
+            top?: string;
+            bottom?: string;
         }, {
-            top?: string | undefined;
-            bottom?: string | undefined;
+            top?: string;
+            bottom?: string;
         }>>;
     }, "strip", z.ZodTypeAny, {
-        time?: number | undefined;
-        ambient?: string | undefined;
-        brightness?: number | undefined;
-        shadows?: boolean | undefined;
+        time?: number;
+        ambient?: string;
+        brightness?: number;
+        shadows?: boolean;
         colorShift?: {
-            top?: string | undefined;
-            bottom?: string | undefined;
-        } | undefined;
+            top?: string;
+            bottom?: string;
+        };
     }, {
-        time?: number | undefined;
-        ambient?: string | undefined;
-        brightness?: number | undefined;
-        shadows?: boolean | undefined;
+        time?: number;
+        ambient?: string;
+        brightness?: number;
+        shadows?: boolean;
         colorShift?: {
-            top?: string | undefined;
-            bottom?: string | undefined;
-        } | undefined;
+            top?: string;
+            bottom?: string;
+        };
     }>>;
     fog: z.ZodOptional<z.ZodObject<{
         enabled: z.ZodOptional<z.ZodBoolean>;
@@ -147,15 +147,15 @@ export declare const environmentSchema: z.ZodObject<{
         end: z.ZodOptional<z.ZodNumber>;
         color: z.ZodOptional<z.ZodString>;
     }, "strip", z.ZodTypeAny, {
-        enabled?: boolean | undefined;
-        end?: number | undefined;
-        color?: string | undefined;
-        start?: number | undefined;
+        enabled?: boolean;
+        end?: number;
+        color?: string;
+        start?: number;
     }, {
-        enabled?: boolean | undefined;
-        end?: number | undefined;
-        color?: string | undefined;
-        start?: number | undefined;
+        enabled?: boolean;
+        end?: number;
+        color?: string;
+        start?: number;
     }>>;
     atmosphere: z.ZodOptional<z.ZodObject<{
         density: z.ZodOptional<z.ZodNumber>;
@@ -163,83 +163,83 @@ export declare const environmentSchema: z.ZodObject<{
         color: z.ZodOptional<z.ZodString>;
         glare: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
-        offset?: number | undefined;
-        color?: string | undefined;
-        density?: number | undefined;
-        glare?: number | undefined;
+        offset?: number;
+        density?: number;
+        color?: string;
+        glare?: number;
     }, {
-        offset?: number | undefined;
-        color?: string | undefined;
-        density?: number | undefined;
-        glare?: number | undefined;
+        offset?: number;
+        density?: number;
+        color?: string;
+        glare?: number;
     }>>;
     soundscape: z.ZodOptional<z.ZodArray<z.ZodObject<{
         soundId: z.ZodString;
         looped: z.ZodOptional<z.ZodBoolean>;
         volume: z.ZodOptional<z.ZodNumber>;
     }, "strip", z.ZodTypeAny, {
-        soundId: string;
-        looped?: boolean | undefined;
-        volume?: number | undefined;
+        soundId?: string;
+        looped?: boolean;
+        volume?: number;
     }, {
-        soundId: string;
-        looped?: boolean | undefined;
-        volume?: number | undefined;
+        soundId?: string;
+        looped?: boolean;
+        volume?: number;
     }>, "many">>;
 }, "strip", z.ZodTypeAny, {
     lighting?: {
-        time?: number | undefined;
-        ambient?: string | undefined;
-        brightness?: number | undefined;
-        shadows?: boolean | undefined;
+        time?: number;
+        ambient?: string;
+        brightness?: number;
+        shadows?: boolean;
         colorShift?: {
-            top?: string | undefined;
-            bottom?: string | undefined;
-        } | undefined;
-    } | undefined;
+            top?: string;
+            bottom?: string;
+        };
+    };
     fog?: {
-        enabled?: boolean | undefined;
-        end?: number | undefined;
-        color?: string | undefined;
-        start?: number | undefined;
-    } | undefined;
+        enabled?: boolean;
+        end?: number;
+        color?: string;
+        start?: number;
+    };
     atmosphere?: {
-        offset?: number | undefined;
-        color?: string | undefined;
-        density?: number | undefined;
-        glare?: number | undefined;
-    } | undefined;
+        offset?: number;
+        density?: number;
+        color?: string;
+        glare?: number;
+    };
     soundscape?: {
-        soundId: string;
-        looped?: boolean | undefined;
-        volume?: number | undefined;
-    }[] | undefined;
+        soundId?: string;
+        looped?: boolean;
+        volume?: number;
+    }[];
 }, {
     lighting?: {
-        time?: number | undefined;
-        ambient?: string | undefined;
-        brightness?: number | undefined;
-        shadows?: boolean | undefined;
+        time?: number;
+        ambient?: string;
+        brightness?: number;
+        shadows?: boolean;
         colorShift?: {
-            top?: string | undefined;
-            bottom?: string | undefined;
-        } | undefined;
-    } | undefined;
+            top?: string;
+            bottom?: string;
+        };
+    };
     fog?: {
-        enabled?: boolean | undefined;
-        end?: number | undefined;
-        color?: string | undefined;
-        start?: number | undefined;
-    } | undefined;
+        enabled?: boolean;
+        end?: number;
+        color?: string;
+        start?: number;
+    };
     atmosphere?: {
-        offset?: number | undefined;
-        color?: string | undefined;
-        density?: number | undefined;
-        glare?: number | undefined;
-    } | undefined;
+        offset?: number;
+        density?: number;
+        color?: string;
+        glare?: number;
+    };
     soundscape?: {
-        soundId: string;
-        looped?: boolean | undefined;
-        volume?: number | undefined;
-    }[] | undefined;
+        soundId?: string;
+        looped?: boolean;
+        volume?: number;
+    }[];
 }>;

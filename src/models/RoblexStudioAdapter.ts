@@ -188,6 +188,12 @@ export class RoblexStudioAdapter {
       };
     });
     
+    // Studio connected handler
+    this._protocol.registerHandler('studio:connected', async (data) => {
+      logger.info(`Studio connected: ${data.connectionId}`);
+      return { success: true };
+    });
+    
     // Get all models in the context
     this._protocol.registerHandler('studio:getModels', async () => {
       const models = this._context.getAllModels();

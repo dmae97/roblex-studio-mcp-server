@@ -34,11 +34,7 @@ export declare const socialFeaturesGenerator: {
         };
     };
     execute: (params: any) => Promise<{
-        scripts: {
-            name: string;
-            type: string;
-            content: any;
-        }[];
+        scripts: any[];
         uiElements: {
             name: string;
             preview: string;
@@ -58,7 +54,7 @@ export declare const socialFeaturesGenerator: {
                 description: string;
                 script: string;
             }[];
-        } | null;
+        };
         documentation: {
             setup: string;
             usage: string;

@@ -1,7 +1,8 @@
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Resource } from '@modelcontextprotocol/sdk/types.js';
 import { NotFoundError, DatastoreError } from '../utils/errorHandler';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
+import { z } from 'zod';
 
 // Define the structure for template categories and templates
 interface Template {

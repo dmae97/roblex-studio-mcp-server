@@ -1,5 +1,5 @@
 import { BaseModel } from './BaseModel.js';
-import { ModelState } from './types.js';
+import { ModelState, IModel } from './types.js';
 import { logger } from '../utils/logger.js';
 import { validateModelData, validateModelUpdates } from './validation.js';
 
@@ -9,7 +9,7 @@ import { validateModelData, validateModelUpdates } from './validation.js';
  */
 
 // 베이스 Roblox Studio 모델 클래스 - 다른 클래스의 기본 클래스로 사용
-export class RoblexStudioBaseModel extends BaseModel {
+export class RoblexStudioBaseModel extends BaseModel implements IModel {
   constructor(id: string, initialState?: Record<string, unknown>) {
     super(id);
     

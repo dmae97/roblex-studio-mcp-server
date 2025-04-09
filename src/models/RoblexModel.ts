@@ -8,14 +8,15 @@ import {
   ChangeListener,
   BatchChangeListener,
   PropertyChangeListener,
-  ResetListener
+  ResetListener,
+  IModel
 } from './types.js';
 
 /**
  * Base model class for Roblex studio components
  * Implements the Model part of Model-Context-Protocol pattern
  */
-export class RoblexModel extends EventEmitter {
+export class RoblexModel extends EventEmitter implements IModel {
   private _state: ModelState;
   private _name: string;
   private _eventHandlers: {

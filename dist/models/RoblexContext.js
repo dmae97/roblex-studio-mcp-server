@@ -29,11 +29,12 @@ class RoblexContext {
      * @param model Model to register
      */
     registerModel(model) {
-        if (this._models.has(model.name)) {
-            logger_js_1.logger.warn(`Model with name ${model.name} already registered, replacing`);
+        const modelName = model.name || model.id || 'unknown';
+        if (this._models.has(modelName)) {
+            logger_js_1.logger.warn(`Model with name ${modelName} already registered, replacing`);
         }
-        this._models.set(model.name, model);
-        logger_js_1.logger.debug(`Model ${model.name} registered with context ${this._name}`);
+        this._models.set(modelName, model);
+        logger_js_1.logger.debug(`Model ${modelName} registered with context ${this._name}`);
     }
     /**
      * Unregister a model from this context

@@ -1,12 +1,13 @@
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger.js';
+import { IModel, ModelState } from './types.js';
 
 /**
  * Base model class for MCP (Model-Context-Protocol) implementation
  * This implementation provides core functionality similar to the SDK's BaseModel
  * but without external dependencies
  */
-export class BaseModel extends EventEmitter {
+export class BaseModel extends EventEmitter implements IModel {
   protected _state: Record<string, unknown>;
   protected _id: string;
   

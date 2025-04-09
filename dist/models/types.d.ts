@@ -19,3 +19,15 @@ export type PropertyChangeListener = (data: {
 export type ChangeListener = (data: ChangeEvent) => void;
 export type BatchChangeListener = (changes: BatchChangeEvent) => void;
 export type ResetListener = (data: ResetEvent) => void;
+/**
+ * Common interface for all Roblex models to ensure type compatibility
+ * This helps resolve type issues when registering specialized models
+ */
+export interface IModel {
+    id?: string;
+    name?: string;
+    state: ModelState;
+    getValue<T>(key: string, defaultValue?: T): T;
+    setValue(key: string, value: any, silent?: boolean): void;
+    setValues(values: ModelState, silent?: boolean): void;
+}

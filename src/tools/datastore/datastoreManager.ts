@@ -3,7 +3,7 @@ import { NotFoundError, DatastoreError } from '../../utils/errorHandler';
 import sqlite3 from 'sqlite3';
 import { promisify } from 'util';
 import { z } from 'zod';
-import { logger } from '../../utils/logger';
+import { logger } from '../../utils/logger.js';
 
 // Define the structure of a row in the datastore
 interface DatastoreRow {

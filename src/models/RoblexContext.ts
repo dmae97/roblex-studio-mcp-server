@@ -1,13 +1,13 @@
 import { RoblexModel } from './RoblexModel.js';
 import { logger } from '../utils/logger.js';
-import { ModelState } from './types.js';
+import { ModelState, IModel } from './types.js';
 
 /**
  * Context class for Roblex components
  * Implements the Context part of Model-Context-Protocol pattern
  */
 export class RoblexContext {
-  private _models: Map<string, RoblexModel>;
+  private _models: Map<string, IModel>;
   private _name: string;
   
   /**
@@ -16,7 +16,7 @@ export class RoblexContext {
    */
   constructor(name: string) {
     this._name = name;
-    this._models = new Map<string, RoblexModel>();
+    this._models = new Map<string, IModel>();
     
     logger.debug(`Context created: ${name}`);
   }
@@ -32,13 +32,15 @@ export class RoblexContext {
    * Register a model with this context
    * @param model Model to register
    */
-  registerModel(model: RoblexModel): void {
-    if (this._models.has(model.name)) {
-      logger.warn(`Model with name ${model.name} already registered, replacing`);
+  registerModel(model: IModel): void {
+    const modelName = model.name || model.id || 'unknown';
+    
+    if (this._models.has(modelName)) {
+      logger.warn(`Model with name ${modelName} already registered, replacing`);
     }
     
-    this._models.set(model.name, model);
-    logger.debug(`Model ${model.name} registered with context ${this._name}`);
+    this._models.set(modelName, model);
+    logger.debug(`Model ${modelName} registered with context ${this._name}`);
   }
   
   /**
@@ -61,7 +63,7 @@ export class RoblexContext {
    * @param modelName Name of the model to retrieve
    * @returns The model or undefined if not found
    */
-  getModel(modelName: string): RoblexModel | undefined {
+  getModel(modelName: string): IModel | undefined {
     return this._models.get(modelName);
   }
   
@@ -69,7 +71,7 @@ export class RoblexContext {
    * Get all models in this context
    * @returns Array of all registered models
    */
-  getAllModels(): RoblexModel[] {
+  getAllModels(): IModel[] {
     return Array.from(this._models.values());
   }
   

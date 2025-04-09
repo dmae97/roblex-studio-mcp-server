@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
     "test": "jest",
+    "test:sequential": "node test-sequential-mcp.js",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "docs": "typedoc --out docs src/index.ts"
@@ -28,8 +29,10 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "eventsource": "^2.0.2",
     "express": "^4.18.2",
     "node-cache": "^5.1.2",
+    "roblex-studio-mcp-server": "file:",
     "sqlite3": "^5.1.7",
     "uuid": "^9.0.0",
     "ws": "^8.14.2"
@@ -37,6 +40,7 @@
   "devDependencies": {
     "@types/cookie-parser": "^1.4.3",
     "@types/cors": "^2.8.17",
+    "@types/eventsource": "^1.1.15",
     "@types/express": "^4.17.17",
     "@types/jest": "^29.5.3",
     "@types/node": "^20.4.5",

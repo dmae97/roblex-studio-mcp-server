@@ -31,5 +31,5 @@ export declare const localizationManager: {
             };
         };
     };
-    execute: (params: any) => Promise<{}>;
+    execute: (params: any) => Promise<any>;
 };

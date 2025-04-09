@@ -22,18 +22,20 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.httpServer = exports.server = exports.app = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
-const mcp_1 = require("@modelcontextprotocol/sdk/server/mcp");
-const sse_js_1 = require("@modelcontextprotocol/sdk/server/sse.js");
 const dotenv_1 = __importDefault(require("dotenv"));
 const http_1 = __importDefault(require("http"));
-const logger_1 = require("./utils/logger");
+const logger_js_1 = require("./utils/logger.js");
 const auth_1 = require("./utils/auth");
 const errorHandler_1 = require("./utils/errorHandler");
 const index_1 = require("./tools/index");
@@ -41,6 +43,14 @@ const index_2 = require("./resources/index");
 const index_3 = require("./prompts/index");
 const index_4 = require("./models/index");
 const auth = __importStar(require("./utils/auth"));
+// Import our own implementations instead of from typescript-sdk
+const McpServer_js_1 = require("./server/McpServer.js");
+const SSEServerTransport_js_1 = require("./server/SSEServerTransport.js");
+// New imports for Sequential MCP
+const index_5 = require("./server/index");
+// Export our own components
+__exportStar(require("./server/index"), exports);
+__exportStar(require("./models/index"), exports);
 // Load environment variables
 dotenv_1.default.config();
 // Initialize authentication system
@@ -50,18 +60,35 @@ const PORT = Number(process.env.PORT || 3001);
 const SERVER_NAME = process.env.SERVER_NAME || 'Roblex Studio MCP Server';
 const SERVER_VERSION = process.env.SERVER_VERSION || '1.0.0';
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
-// Create MCP Server
-const server = new mcp_1.McpServer({
-    name: SERVER_NAME,
-    version: SERVER_VERSION,
-    logger: logger_1.logger // Pass the custom logger
-});
+const USE_SEQUENTIAL = process.env.USE_SEQUENTIAL === 'true';
+// Create appropriate MCP Server based on configuration
+let server;
+if (USE_SEQUENTIAL) {
+    // Create a Sequential MCP Server
+    const concurrency = Number(process.env.SEQUENTIAL_CONCURRENCY || 1);
+    exports.server = server = index_5.McpServerFactory.createSequential({
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
+        logger: logger_js_1.logger // Pass the custom logger
+    }, concurrency);
+    logger_js_1.logger.info(`Using Sequential MCP server with concurrency: ${concurrency}`);
+}
+else {
+    // Create a standard MCP Server
+    exports.server = server = new McpServer_js_1.McpServer({
+        name: SERVER_NAME,
+        version: SERVER_VERSION,
+        logger: logger_js_1.logger // Pass the custom logger
+    });
+    logger_js_1.logger.info('Using standard MCP server');
+}
 // Register tools, resources, and prompts
 index_1.roblexTools.register(server);
 index_2.roblexResources.register(server);
 index_3.roblexPrompts.register(server);
 // Create Express app
 const app = (0, express_1.default)();
+exports.app = app;
 // Configure CORS
 const corsOptions = {
     origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
@@ -72,6 +99,7 @@ app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 // Create HTTP server from Express app
 const httpServer = http_1.default.createServer(app);
+exports.httpServer = httpServer;
 // Storage for active transports
 const transports = {};
 // Storage for active Roblox Studio adapters
@@ -141,7 +169,7 @@ app.post('/auth/logout', (req, res) => {
 });
 // SSE endpoint
 app.get('/sse', authMiddleware, async (req, res) => {
-    const transport = new sse_js_1.SSEServerTransport('/messages', res);
+    const transport = new SSEServerTransport_js_1.SSEServerTransport('/messages', res);
     const sessionId = req.query.sessionId || transport.sessionId;
     transports[sessionId] = transport;
     // Create a new Roblox Studio adapter for this session
@@ -157,9 +185,9 @@ app.get('/sse', authMiddleware, async (req, res) => {
     else {
         auth.updateSessionActivity(sessionId);
     }
-    logger_1.logger.info(`New SSE connection established: ${sessionId}`);
+    logger_js_1.logger.info(`New SSE connection established: ${sessionId}`);
     res.on('close', () => {
-        logger_1.logger.info(`SSE connection closed: ${sessionId}`);
+        logger_js_1.logger.info(`SSE connection closed: ${sessionId}`);
         // Disconnect the Roblox Studio adapter
         if (studioAdapters[sessionId]) {
             studioAdapters[sessionId].disconnect();
@@ -169,6 +197,18 @@ app.get('/sse', authMiddleware, async (req, res) => {
     });
     await server.connect(transport);
 });
+// If using Sequential MCP, create and register the RoblexStudioService
+if (USE_SEQUENTIAL) {
+    // Create Roblox Studio service with sequential MCP
+    const studioService = new index_5.RoblexStudioService({
+        version: SERVER_VERSION,
+        apiPrefix: '/api/roblox-studio',
+        concurrency: Number(process.env.SEQUENTIAL_CONCURRENCY || 1)
+    });
+    // Register the service's router
+    app.use('/', studioService.router);
+    logger_js_1.logger.info(`RoblexStudioService registered on prefix: /api/roblox-studio`);
+}
 // Messages endpoint
 app.post('/messages', authMiddleware, async (req, res) => {
     const sessionId = req.query.sessionId;
@@ -176,10 +216,18 @@ app.post('/messages', authMiddleware, async (req, res) => {
     if (transport) {
         // Update session activity
         auth.updateSessionActivity(sessionId);
-        await transport.handlePostMessage(req, res);
+        try {
+            // Debugging for request body
+            logger_js_1.logger.debug(`Received message: ${JSON.stringify(req.body)}`);
+            await transport.handlePostMessage(req, res);
+        }
+        catch (error) {
+            logger_js_1.logger.error(`Error handling message: ${error instanceof Error ? error.message : String(error)}`);
+            res.status(500).json({ error: { message: 'Error processing message', code: 'MESSAGE_ERROR' } });
+        }
     }
     else {
-        logger_1.logger.error(`No transport found for sessionId: ${sessionId}`);
+        logger_js_1.logger.error(`No transport found for sessionId: ${sessionId}`);
         res.status(400).send('No transport found for sessionId');
     }
 });
@@ -188,20 +236,20 @@ app.post('/studio/api', authMiddleware, async (req, res) => {
     const sessionId = req.query.sessionId;
     const adapter = studioAdapters[sessionId];
     if (!adapter) {
-        logger_1.logger.error(`No Roblox Studio adapter found for sessionId: ${sessionId}`);
+        logger_js_1.logger.error(`No Roblox Studio adapter found for sessionId: ${sessionId}`);
         res.status(400).json({ error: 'No active Roblox Studio session found' });
         return;
     }
     try {
         // Assuming the plugin sends messages in the format { messageType, data }
         const { messageType, data } = req.body;
-        logger_1.logger.info(`Received studio message: ${messageType}`, { sessionId, data });
+        logger_js_1.logger.info(`Received studio message: ${messageType}`, { sessionId, data });
         // Let the adapter handle the message
         const result = await adapter.handleMessage(messageType, data);
         res.status(200).json(result);
     }
     catch (error) {
-        logger_1.logger.error(`Error handling Roblox Studio message`, {
+        logger_js_1.logger.error(`Error handling Roblox Studio message`, {
             error: error instanceof Error ? error.message : String(error),
             sessionId
         });
@@ -214,6 +262,7 @@ app.get('/health', (req, res) => {
         status: 'ok',
         name: SERVER_NAME,
         version: SERVER_VERSION,
+        type: USE_SEQUENTIAL ? 'sequential' : 'standard',
         activeSessions: Object.keys(transports).length,
         activeStudioSessions: Object.keys(studioAdapters).length
     });
@@ -224,102 +273,44 @@ app.get('/studio/status', authMiddleware, (req, res) => {
     res.status(200).json({
         activeConnections: activeAdapters.length,
         globalModelCount: index_4.globalContext.getAllModels().length,
-        // Cannot directly access private _handlers, so we'll omit this for now
-        // handlers: Array.from(new Set(
-        //   Object.values(studioAdapters).flatMap((adapter) => 
-        //     Array.from(adapter.protocol._handlers.keys())
-        //   )
-        // ))
+        serverType: USE_SEQUENTIAL ? 'sequential' : 'standard'
     });
 });
-// Secured API endpoints
-const securedRouter = express_1.default.Router();
-app.use('/api', authMiddleware, securedRouter);
-// Get all sessions endpoint
-securedRouter.get('/sessions', (req, res) => {
-    // Only admin users can access this endpoint
-    const userRole = req.apiKey?.role || req.user?.role;
-    if (userRole !== 'admin') {
-        return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-    const sessionIds = Object.keys(transports);
-    const sessions = sessionIds.map(sessionId => ({
-        sessionId,
-        hasStudioAdapter: !!studioAdapters[sessionId],
-        sessionInfo: auth.getSessionInfo(sessionId)
-    }));
-    res.status(200).json({ sessions });
-});
-// Get model by ID endpoint
-securedRouter.get('/models/:modelId', (req, res) => {
-    const modelId = req.params.modelId;
-    const model = index_4.globalContext.getModel(modelId);
-    if (!model) {
-        return res.status(404).json({ error: `Model ${modelId} not found` });
-    }
-    res.status(200).json({
-        id: model.name,
-        state: model.state
-    });
-});
-// Initialize WebSocket synchronization system
-// WebSocket 동기화 시스템 비활성화 (포트 충돌 문제 해결)
-// sync.init(httpServer, '/sync');
-// 대신 로그 메시지만 출력
-logger_1.logger.info('WebSocket synchronization system was disabled to prevent port conflicts');
-// Add 404 handler for non-existing routes
+// Add error handler middleware
+app.use(errorHandler_1.errorHandlerMiddleware);
+// Add 404 handler
 app.use((req, res, next) => {
     next(new errorHandler_1.NotFoundError(`Route not found: ${req.method} ${req.path}`));
 });
-// Add error handling middleware
-app.use(errorHandler_1.errorHandlerMiddleware);
 // Start the server
 httpServer.listen(PORT, () => {
-    logger_1.logger.info(`${SERVER_NAME} v${SERVER_VERSION} started on port ${PORT}`);
-    logger_1.logger.info(`SSE endpoint: http://localhost:${PORT}/sse`);
-    // WebSocket 동기화 엔드포인트 메시지 제거
-    // logger.info(`WebSocket sync endpoint: ws://localhost:${PORT}/sync`);
+    logger_js_1.logger.info(`${SERVER_NAME} v${SERVER_VERSION} listening on port ${PORT}`);
+    logger_js_1.logger.info(`Mode: ${USE_SEQUENTIAL ? 'Sequential' : 'Standard'} MCP, Auth: ${REQUIRE_AUTH ? 'Required' : 'Not Required'}`);
 });
-// Graceful shutdown handler
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
-// Uncaught exception handler
-process.on('uncaughtException', (error) => {
-    logger_1.logger.error('Uncaught exception', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        error: error.toString()
-    });
-    gracefulShutdown(); // Attempt graceful shutdown on uncaught exception
-});
+// Handle graceful shutdown
 function gracefulShutdown() {
-    logger_1.logger.info('Graceful shutdown initiated...');
-    // Close active connections
-    Object.keys(studioAdapters).forEach(sessionId => {
-        const adapter = studioAdapters[sessionId];
-        if (adapter) {
-            try {
-                adapter.disconnect();
-                logger_1.logger.info(`Disconnected Roblox Studio adapter: ${sessionId}`);
-            }
-            catch (error) {
-                logger_1.logger.error(`Error disconnecting adapter ${sessionId}`, {
-                    error: error instanceof Error ? error.message : String(error)
-                });
-            }
+    logger_js_1.logger.info('Received shutdown signal, closing connections...');
+    // Disconnect all Studio adapters
+    Object.values(studioAdapters).forEach(adapter => {
+        try {
+            adapter.disconnect();
+        }
+        catch (error) {
+            logger_js_1.logger.error('Error disconnecting adapter', { error });
         }
     });
-    // Close HTTP server
+    // Close the HTTP server
     httpServer.close(() => {
-        logger_1.logger.info('HTTP server closed');
-        // Additional cleanup if needed
+        logger_js_1.logger.info('Server shutdown complete');
         process.exit(0);
     });
     // Force exit after timeout
     setTimeout(() => {
-        logger_1.logger.error('Forced shutdown after timeout');
+        logger_js_1.logger.error('Forced exit after timeout');
         process.exit(1);
     }, 10000);
 }
+// Listen for shutdown signals
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 //# sourceMappingURL=index.js.map
