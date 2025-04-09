@@ -1,4 +1,3 @@
-dotenv
 .env
 .env.*
 *.key
@@ -12,9 +11,4 @@ mcp_settings.json
 *.token
 *.config.local
 *.secrets.*
-*.env
-*.env.*
-*.key
-*.pem
-*.p12
-*.crt
+node_modules
