@@ -1,20 +1,40 @@
-export declare function generateToken(length?: number): string;
-export declare function generateSessionId(prefix?: string): string;
-export declare function createToken(payload: Record<string, any>, expiresIn?: number): string;
-export declare function verifyToken(token: string): Record<string, any> | null;
+/**
+ * Initialize authentication system
+ */
+export declare function init(): void;
+/**
+ * Verify an API key
+ */
 export declare function verifyApiKey(apiKey: string): {
     valid: boolean;
     name?: string;
     role?: string;
 };
-export declare function createHash(data: string): string;
-export declare function registerSession(sessionId: string, userId: string, role: string, ipAddress?: string): void;
-export declare function updateSessionActivity(sessionId: string): void;
+/**
+ * Generate a session ID
+ */
+export declare function generateSessionId(prefix?: string): string;
+/**
+ * Register a new session
+ */
+export declare function registerSession(sessionId: string, userId: string, role: string, ip: string): void;
+/**
+ * Check if a session is valid
+ */
 export declare function isSessionValid(sessionId: string): boolean;
-export declare function getSessionInfo(sessionId: string): any;
+/**
+ * Update session activity timestamp
+ */
+export declare function updateSessionActivity(sessionId: string): void;
+/**
+ * Revoke a session
+ */
 export declare function revokeSession(sessionId: string): void;
-export declare function cleanupSessions(maxAgeMs?: number): void;
-export declare function init(): void;
-export declare function apiKeyAuth(req: any, res: any, next: Function): void;
-export declare function tokenAuth(req: any, res: any, next: Function): void;
-export declare function sessionAuth(req: any, res: any, next: Function): void;
+/**
+ * Create an authentication token
+ */
+export declare function createToken(payload: Record<string, any>): string;
+/**
+ * Authentication middleware for Express
+ */
+export declare function apiKeyAuth(req: any, res: any, next: () => void): void;

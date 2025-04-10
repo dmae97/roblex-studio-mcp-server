@@ -1,49 +1,41 @@
-/// <reference types="cookie-parser" />
-import { Transport } from './McpServer.js';
-import { Response, Request } from 'express';
+import { Response } from 'express';
+import { McpMessageHandler, McpTransport, McpResponse } from '../sdk';
 /**
- * Server-Sent Events (SSE) transport for MCP communication
+ * SSE(Server-Sent Events) 서버 트랜스포트
+ * MCP 프로토콜을 위한 트랜스포트 구현
  */
-export declare class SSEServerTransport implements Transport {
-    private _sessionId;
-    private _path;
-    private _res;
-    private _messageHandler;
-    private _isConnected;
+export declare class SSEServerTransport implements McpTransport {
+    sessionId: string;
+    private response;
+    private endpoint;
+    private messageHandler;
+    private closed;
     /**
-     * Create a new SSE transport
-     * @param path URL path for the SSE endpoint
-     * @param res Express response object
+     * SSE 트랜스포트 생성
+     * @param endpoint API 엔드포인트 경로
+     * @param response Express 응답 객체
      */
-    constructor(path: string, res: Response);
+    constructor(endpoint: string, response: Response);
     /**
-     * Get the session ID
+     * 메시지 핸들러 설정
+     * MCP 요청을 처리하고 응답을 반환하는 함수 등록
      */
-    get sessionId(): string;
+    onMessage(handler: McpMessageHandler): void;
     /**
-     * Send a message through the SSE connection
-     * @param message Message to send
+     * MCP 요청 처리
+     * API 엔드포인트로 들어온 POST 요청 처리
      */
-    send(message: any): Promise<void>;
+    handlePostMessage(req: any): Promise<McpResponse>;
     /**
-     * Handle POST messages from client
-     * @param req Express request object
-     * @param res Express response object
+     * SSE 이벤트 전송
      */
-    handlePostMessage(req: Request, res: Response): Promise<void>;
+    private sendEvent;
     /**
-     * Set message handler for incoming messages
-     * @param handler Message handler function
+     * 연결 유지를 위한 핑 설정
      */
-    onMessage(handler: (message: any) => Promise<void>): void;
+    private setupKeepAlive;
     /**
-     * Send an SSE event
-     * @param event Event name
-     * @param data Event data
+     * 트랜스포트 종료
      */
-    private _sendEvent;
-    /**
-     * Disconnect the transport
-     */
-    disconnect(): Promise<void>;
+    close(): Promise<void>;
 }

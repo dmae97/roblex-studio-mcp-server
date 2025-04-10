@@ -1,7 +1,6 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 /**
- * Registry for all Roblex Studio resources
+ * Resources for Roblex Studio MCP Server
  */
 export declare const roblexResources: {
-    register: (server: McpServer) => void;
+    register: (server: any) => void;
 };

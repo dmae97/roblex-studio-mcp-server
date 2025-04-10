@@ -73,7 +73,7 @@ export declare const metaverseIntegration: {
                 auth: string;
                 identity: string;
                 permissions: string;
-            };
+            } | {};
             webhooks: {
                 userSync: string;
                 assetSync: string;
@@ -94,7 +94,7 @@ export declare const metaverseIntegration: {
                 userAuthorized: string;
                 permissionsChanged: string;
                 sessionExpired: string;
-            };
+            } | {};
             security: {
                 encryption: string;
                 authentication: string;

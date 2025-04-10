@@ -2,125 +2,126 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SSEServerTransport = void 0;
 const uuid_1 = require("uuid");
-const logger_js_1 = require("../utils/logger.js");
+const logger_1 = require("../utils/logger");
 /**
- * Server-Sent Events (SSE) transport for MCP communication
+ * SSE(Server-Sent Events) 서버 트랜스포트
+ * MCP 프로토콜을 위한 트랜스포트 구현
  */
 class SSEServerTransport {
-    _sessionId;
-    _path;
-    _res;
-    _messageHandler = null;
-    _isConnected = false;
+    sessionId;
+    response;
+    endpoint;
+    messageHandler = null;
+    closed = false;
     /**
-     * Create a new SSE transport
-     * @param path URL path for the SSE endpoint
-     * @param res Express response object
+     * SSE 트랜스포트 생성
+     * @param endpoint API 엔드포인트 경로
+     * @param response Express 응답 객체
      */
-    constructor(path, res) {
-        this._sessionId = (0, uuid_1.v4)();
-        this._path = path;
-        this._res = res;
-        // Configure response for SSE
-        this._res.setHeader('Content-Type', 'text/event-stream');
-        this._res.setHeader('Cache-Control', 'no-cache');
-        this._res.setHeader('Connection', 'keep-alive');
-        this._res.setHeader('X-Accel-Buffering', 'no'); // Prevents Nginx from buffering the SSE
-        this._res.flushHeaders();
-        this._isConnected = true;
-        // Send initial connection success message
-        this._sendEvent('connected', { sessionId: this._sessionId });
-        logger_js_1.logger.info(`SSE transport created: ${this._sessionId}`);
-        // Handle client disconnection
-        this._res.on('close', () => {
-            this._isConnected = false;
-            logger_js_1.logger.info(`SSE client disconnected: ${this._sessionId}`);
+    constructor(endpoint, response) {
+        this.sessionId = (0, uuid_1.v4)();
+        this.response = response;
+        this.endpoint = endpoint;
+        // SSE 헤더 설정
+        this.response.setHeader('Content-Type', 'text/event-stream');
+        this.response.setHeader('Cache-Control', 'no-cache');
+        this.response.setHeader('Connection', 'keep-alive');
+        // 연결 유지를 위한 정기적인 핑 설정
+        this.setupKeepAlive();
+        // 연결 종료 감지
+        this.response.on('close', () => {
+            this.closed = true;
+            logger_1.logger.info(`SSE connection closed: ${this.sessionId}`);
         });
+        logger_1.logger.info(`Created SSE transport for endpoint: ${endpoint}, sessionId: ${this.sessionId}`);
     }
     /**
-     * Get the session ID
-     */
-    get sessionId() {
-        return this._sessionId;
-    }
-    /**
-     * Send a message through the SSE connection
-     * @param message Message to send
-     */
-    async send(message) {
-        if (!this._isConnected) {
-            logger_js_1.logger.warn(`Attempted to send message to disconnected client: ${this._sessionId}`);
-            return;
-        }
-        this._sendEvent('message', message);
-    }
-    /**
-     * Handle POST messages from client
-     * @param req Express request object
-     * @param res Express response object
-     */
-    async handlePostMessage(req, res) {
-        if (!this._messageHandler) {
-            logger_js_1.logger.warn(`No message handler registered for SSE transport: ${this._sessionId}`);
-            res.status(500).json({ error: 'Server not ready for messages' });
-            return;
-        }
-        try {
-            await this._messageHandler(req.body);
-            res.status(200).json({ success: true });
-        }
-        catch (error) {
-            logger_js_1.logger.error(`Error handling POST message: ${error instanceof Error ? error.message : String(error)}`);
-            res.status(500).json({
-                error: 'Failed to process message',
-                details: error instanceof Error ? error.message : String(error)
-            });
-        }
-    }
-    /**
-     * Set message handler for incoming messages
-     * @param handler Message handler function
+     * 메시지 핸들러 설정
+     * MCP 요청을 처리하고 응답을 반환하는 함수 등록
      */
     onMessage(handler) {
-        this._messageHandler = handler;
+        this.messageHandler = handler;
     }
     /**
-     * Send an SSE event
-     * @param event Event name
-     * @param data Event data
+     * MCP 요청 처리
+     * API 엔드포인트로 들어온 POST 요청 처리
      */
-    _sendEvent(event, data) {
-        if (!this._isConnected) {
+    async handlePostMessage(req) {
+        if (this.closed) {
+            throw new Error('Transport is closed');
+        }
+        if (!this.messageHandler) {
+            throw new Error('No message handler registered');
+        }
+        const request = req.body;
+        logger_1.logger.info(`Received message on ${this.endpoint}: ${JSON.stringify(request)}`);
+        try {
+            const response = await this.messageHandler(request);
+            this.sendEvent('message', response);
+            return response;
+        }
+        catch (error) {
+            const errorResponse = {
+                type: 'error',
+                error: {
+                    message: error.message || 'Unknown error',
+                    code: 'INTERNAL_SERVER_ERROR'
+                }
+            };
+            this.sendEvent('error', errorResponse);
+            return errorResponse;
+        }
+    }
+    /**
+     * SSE 이벤트 전송
+     */
+    sendEvent(event, data) {
+        if (this.closed) {
+            logger_1.logger.warn(`Attempted to send event to closed transport: ${this.sessionId}`);
             return;
         }
         try {
-            this._res.write(`event: ${event}\n`);
-            this._res.write(`data: ${JSON.stringify(data)}\n\n`);
-            // Express Response에는 flush 메서드가 없으므로 생략
-            // Node.js의 기본 응답 처리가 데이터를 적절히 전송
+            this.response.write(`event: ${event}\n`);
+            this.response.write(`data: ${JSON.stringify(data)}\n\n`);
+            // Express의 Response 객체에는 flush 메서드가 없으므로 제거
+            // 필요한 경우 다음과 같이 처리할 수 있음: (this.response as any).flush?.()
         }
         catch (error) {
-            logger_js_1.logger.error(`Error sending SSE event: ${error instanceof Error ? error.message : String(error)}`);
-            this._isConnected = false;
+            logger_1.logger.error(`Error sending SSE event: ${error}`);
         }
     }
     /**
-     * Disconnect the transport
+     * 연결 유지를 위한 핑 설정
      */
-    async disconnect() {
-        if (!this._isConnected) {
-            return;
-        }
-        try {
-            // Send end event
-            this._sendEvent('disconnected', { sessionId: this._sessionId });
-            // End the response
-            this._res.end();
-            this._isConnected = false;
-            logger_js_1.logger.info(`SSE transport disconnected: ${this._sessionId}`);
-        }
-        catch (error) {
-            logger_js_1.logger.error(`Error disconnecting SSE transport: ${error instanceof Error ? error.message : String(error)}`);
+    setupKeepAlive() {
+        const interval = setInterval(() => {
+            if (this.closed) {
+                clearInterval(interval);
+                return;
+            }
+            try {
+                this.response.write(': ping\n\n');
+                // Express의 Response 객체에는 flush 메서드가 없으므로 제거
+            }
+            catch (error) {
+                logger_1.logger.error(`Error sending keep-alive ping: ${error}`);
+                clearInterval(interval);
+                this.closed = true;
+            }
+        }, 30000); // 30초마다 핑 전송
+    }
+    /**
+     * 트랜스포트 종료
+     */
+    async close() {
+        if (!this.closed) {
+            try {
+                this.response.end();
+            }
+            catch (error) {
+                logger_1.logger.error(`Error closing SSE response: ${error}`);
+            }
+            this.closed = true;
         }
     }
 }

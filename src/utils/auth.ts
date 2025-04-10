@@ -1,262 +1,152 @@
 import crypto from 'crypto';
-import { logger } from './logger.js';
+import { logger } from './logger';
+
+// Store for API keys, sessions and tokens
+const apiKeys: Map<string, { name: string; role: string }> = new Map();
+const sessions: Map<string, { 
+    userId: string; 
+    role: string; 
+    ip: string; 
+    lastActivity: number;
+}> = new Map();
+
+// Session timeout in seconds (default: 1 hour)
+const SESSION_TIMEOUT = Number(process.env.SESSION_TIMEOUT || 3600);
 
 /**
- * Authentication and security utilities for MCP server
+ * Initialize authentication system
  */
-
-// Secret key for token signing (should be in environment variables in production)
-const JWT_SECRET = process.env.JWT_SECRET || 'mcp_default_secret_key';
-// Token expiration time (in seconds)
-const TOKEN_EXPIRATION = parseInt(process.env.TOKEN_EXPIRATION || '3600', 10);
-// List of API keys for authentication
-const API_KEYS: Record<string, { name: string; role: string; enabled: boolean }> = {};
-
-// Load API keys from environment
-function loadApiKeys(): void {
-  const apiKeyPrefix = 'MCP_API_KEY_';
-  
-  Object.keys(process.env).forEach(key => {
-    if (key.startsWith(apiKeyPrefix)) {
-      const name = key.substring(apiKeyPrefix.length);
-      const value = process.env[key] || '';
-      
-      if (value.includes(':')) {
-        const [apiKey, role] = value.split(':');
-        API_KEYS[apiKey] = { name, role, enabled: true };
-      }
-    }
-  });
-  
-  logger.info(`Loaded ${Object.keys(API_KEYS).length} API keys`);
-}
-
-// Generate a random token
-export function generateToken(length: number = 32): string {
-  return crypto.randomBytes(length).toString('hex');
-}
-
-// Generate a session ID
-export function generateSessionId(prefix: string = 'session'): string {
-  return `${prefix}_${Date.now()}_${generateToken(8)}`;
-}
-
-// Create a JWT token
-export function createToken(payload: Record<string, any>, expiresIn: number = TOKEN_EXPIRATION): string {
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT'
-  };
-  
-  const now = Math.floor(Date.now() / 1000);
-  const tokenPayload = {
-    ...payload,
-    iat: now,
-    exp: now + expiresIn
-  };
-  
-  const headerBase64 = Buffer.from(JSON.stringify(header)).toString('base64url');
-  const payloadBase64 = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
-  
-  const signature = crypto
-    .createHmac('sha256', JWT_SECRET)
-    .update(`${headerBase64}.${payloadBase64}`)
-    .digest('base64url');
-  
-  return `${headerBase64}.${payloadBase64}.${signature}`;
-}
-
-// Verify a JWT token
-export function verifyToken(token: string): Record<string, any> | null {
-  try {
-    const [headerBase64, payloadBase64, signature] = token.split('.');
-    
-    const expectedSignature = crypto
-      .createHmac('sha256', JWT_SECRET)
-      .update(`${headerBase64}.${payloadBase64}`)
-      .digest('base64url');
-    
-    if (signature !== expectedSignature) {
-      return null;
-    }
-    
-    const payload = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString());
-    const now = Math.floor(Date.now() / 1000);
-    
-    if (payload.exp && payload.exp < now) {
-      return null;
-    }
-    
-    return payload;
-  } catch (error) {
-    logger.error(`Error verifying token: ${error instanceof Error ? error.message : String(error)}`);
-    return null;
-  }
-}
-
-// Verify an API key
-export function verifyApiKey(apiKey: string): { valid: boolean; name?: string; role?: string } {
-  if (API_KEYS[apiKey] && API_KEYS[apiKey].enabled) {
-    return { 
-      valid: true, 
-      name: API_KEYS[apiKey].name, 
-      role: API_KEYS[apiKey].role 
-    };
-  }
-  
-  return { valid: false };
-}
-
-// Create a hash of a string
-export function createHash(data: string): string {
-  return crypto.createHash('sha256').update(data).digest('hex');
-}
-
-// Active sessions store
-const activeSessions: Record<string, {
-  userId: string;
-  role: string;
-  createdAt: number;
-  lastActivity: number;
-  ipAddress: string;
-}> = {};
-
-// Register a new session
-export function registerSession(sessionId: string, userId: string, role: string, ipAddress?: string): void {
-  if (!activeSessions[sessionId]) {
-    activeSessions[sessionId] = {
-      userId,
-      role,
-      ipAddress: ipAddress || 'unknown',
-      createdAt: Date.now(),
-      lastActivity: Date.now()
-    };
-    
-    logger.info(`Session registered: ${sessionId} (${userId}, ${role})`);
-  } else {
-    updateSessionActivity(sessionId);
-  }
-}
-
-// Update session activity
-export function updateSessionActivity(sessionId: string): void {
-  if (activeSessions[sessionId]) {
-    activeSessions[sessionId].lastActivity = Date.now();
-  }
-}
-
-// Check if a session is valid
-export function isSessionValid(sessionId: string): boolean {
-  return !!activeSessions[sessionId];
-}
-
-// Get session info
-export function getSessionInfo(sessionId: string): any {
-  return activeSessions[sessionId];
-}
-
-// Revoke a session
-export function revokeSession(sessionId: string): void {
-  if (activeSessions[sessionId]) {
-    logger.debug(`Revoking session ${sessionId} for user ${activeSessions[sessionId].userId}`);
-    delete activeSessions[sessionId];
-  }
-}
-
-// Clean up expired sessions
-export function cleanupSessions(maxAgeMs: number = 3600000): void {
-  const now = Date.now();
-  const expiredSessions = Object.keys(activeSessions).filter(
-    sessionId => (now - activeSessions[sessionId].lastActivity) > maxAgeMs
-  );
-  
-  expiredSessions.forEach(sessionId => {
-    logger.debug(`Session ${sessionId} expired, revoking`);
-    revokeSession(sessionId);
-  });
-  
-  logger.info(`Cleaned up ${expiredSessions.length} expired sessions`);
-}
-
-// Initialize authentication system
 export function init(): void {
-  loadApiKeys();
-  
-  // Set up session cleanup interval
-  setInterval(() => cleanupSessions(), 60000); // Clean up every minute
-  
-  logger.info('Authentication system initialized');
+    logger.info('Initializing authentication system');
+    
+    // Load API keys from environment
+    if (process.env.API_KEYS) {
+        try {
+            const keys = process.env.API_KEYS.split(',');
+            
+            for (const keyPair of keys) {
+                const [key, info] = keyPair.split(':');
+                if (!key || !info) continue;
+                
+                const [name, role] = info.split(';');
+                if (!name) continue;
+                
+                apiKeys.set(key.trim(), { 
+                    name: name.trim(), 
+                    role: role?.trim() || 'user' 
+                });
+                
+                logger.info(`Registered API key for: ${name}`);
+            }
+        } catch (error) {
+            logger.error(`Error loading API keys: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    }
 }
 
-// Express middleware for API key authentication
-export function apiKeyAuth(req: any, res: any, next: Function): void {
-  const apiKey = req.headers['x-api-key'] || req.query.apiKey;
-  
-  if (!apiKey) {
-    res.status(401).json({ error: 'API key required' });
-    return;
-  }
-  
-  const result = verifyApiKey(apiKey);
-  
-  if (!result.valid) {
-    res.status(403).json({ error: 'Invalid API key' });
-    return;
-  }
-  
-  // Store API key info in request for later use
-  req.apiKey = {
-    name: result.name,
-    role: result.role
-  };
-  
-  next();
+/**
+ * Verify an API key
+ */
+export function verifyApiKey(apiKey: string): { valid: boolean; name?: string; role?: string } {
+    const keyInfo = apiKeys.get(apiKey);
+    
+    if (!keyInfo) {
+        logger.warn(`Invalid API key attempt`);
+        return { valid: false };
+    }
+    
+    logger.info(`API key verified for: ${keyInfo.name}`);
+    return { valid: true, name: keyInfo.name, role: keyInfo.role };
 }
 
-// Express middleware for token authentication
-export function tokenAuth(req: any, res: any, next: Function): void {
-  const token = req.headers.authorization?.split(' ')[1] || req.query.token;
-  
-  if (!token) {
-    res.status(401).json({ error: 'Authentication token required' });
-    return;
-  }
-  
-  const payload = verifyToken(token);
-  
-  if (!payload) {
-    res.status(403).json({ error: 'Invalid or expired token' });
-    return;
-  }
-  
-  // Store token payload in request for later use
-  req.user = payload;
-  
-  next();
+/**
+ * Generate a session ID
+ */
+export function generateSessionId(prefix: string = 'session'): string {
+    return `${prefix}_${crypto.randomUUID()}`;
 }
 
-// Express middleware for session authentication
-export function sessionAuth(req: any, res: any, next: Function): void {
-  const sessionId = req.query.sessionId || req.cookies?.sessionId;
-  
-  if (!sessionId) {
-    res.status(401).json({ error: 'Session ID required' });
-    return;
-  }
-  
-  if (!isSessionValid(sessionId)) {
-    res.status(403).json({ error: 'Invalid or expired session' });
-    return;
-  }
-  
-  // Update session activity
-  updateSessionActivity(sessionId);
-  
-  // Store session info in request for later use
-  req.session = {
-    id: sessionId,
-    ...getSessionInfo(sessionId)
-  };
-  
-  next();
+/**
+ * Register a new session
+ */
+export function registerSession(sessionId: string, userId: string, role: string, ip: string): void {
+    sessions.set(sessionId, {
+        userId,
+        role,
+        ip,
+        lastActivity: Date.now()
+    });
+    
+    logger.info(`Session registered: ${sessionId} for ${userId}`);
+}
+
+/**
+ * Check if a session is valid
+ */
+export function isSessionValid(sessionId: string): boolean {
+    const session = sessions.get(sessionId);
+    
+    if (!session) {
+        return false;
+    }
+    
+    // Check if session has expired
+    const elapsed = (Date.now() - session.lastActivity) / 1000;
+    return elapsed < SESSION_TIMEOUT;
+}
+
+/**
+ * Update session activity timestamp
+ */
+export function updateSessionActivity(sessionId: string): void {
+    const session = sessions.get(sessionId);
+    
+    if (session) {
+        session.lastActivity = Date.now();
+    }
+}
+
+/**
+ * Revoke a session
+ */
+export function revokeSession(sessionId: string): void {
+    if (sessions.has(sessionId)) {
+        logger.info(`Session revoked: ${sessionId}`);
+        sessions.delete(sessionId);
+    }
+}
+
+/**
+ * Create an authentication token
+ */
+export function createToken(payload: Record<string, any>): string {
+    // In a production system, use a proper JWT library
+    // This is a simplified implementation
+    const tokenData = Buffer.from(JSON.stringify(payload)).toString('base64');
+    return tokenData;
+}
+
+/**
+ * Authentication middleware for Express
+ */
+export function apiKeyAuth(req: any, res: any, next: () => void): void {
+    const apiKey = req.headers['x-api-key'] || req.query.apiKey;
+    
+    if (!apiKey) {
+        return res.status(401).json({ error: 'API key required' });
+    }
+    
+    const result = verifyApiKey(apiKey);
+    
+    if (!result.valid) {
+        return res.status(403).json({ error: 'Invalid API key' });
+    }
+    
+    // Attach API key info to request
+    req.apiKey = {
+        name: result.name,
+        role: result.role
+    };
+    
+    next();
 } 

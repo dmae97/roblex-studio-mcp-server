@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.templates = void 0;
 const mcp_js_1 = require("@modelcontextprotocol/sdk/server/mcp.js");
 const errorHandler_1 = require("../utils/errorHandler");
-const logger_1 = require("../utils/logger");
+const logger_js_1 = require("../utils/logger.js");
 // Mock template data (replace with actual data source if needed)
 const templateData = {
     categories: [
@@ -62,14 +62,14 @@ const templateData = {
  */
 exports.templates = {
     register: (server) => {
-        logger_1.logger.info('Registering template resources...');
+        logger_js_1.logger.info('Registering template resources...');
         try {
             // Register template resource with integrated listing
             server.resource('code-templates', 
             // ResourceTemplate now includes the list callback in its options
             new mcp_js_1.ResourceTemplate('template://roblex/{category}/{name}', {
                 list: async () => {
-                    logger_1.logger.info('Listing all Roblex templates via ResourceTemplate list callback');
+                    logger_js_1.logger.info('Listing all Roblex templates via ResourceTemplate list callback');
                     try {
                         // Flatten the template data into the Resource structure
                         const allTemplates = templateData.categories.flatMap(category => category.templates.map(template => ({
@@ -82,7 +82,7 @@ exports.templates = {
                     }
                     catch (error) {
                         const errorMessage = error instanceof Error ? error.message : String(error);
-                        logger_1.logger.error('Error listing templates', { error: errorMessage });
+                        logger_js_1.logger.error('Error listing templates', { error: errorMessage });
                         return { resources: [], error: new errorHandler_1.DatastoreError(`Failed to list templates: ${errorMessage}`) };
                     }
                 }
@@ -92,7 +92,7 @@ exports.templates = {
                 // Handle potential array values if necessary, though unlikely for this template
                 const category = typeof variables.category === 'string' ? variables.category : variables.category?.[0] ?? '';
                 const name = typeof variables.name === 'string' ? variables.name : variables.name?.[0] ?? '';
-                logger_1.logger.info(`Fetching template: ${category}/${name}`);
+                logger_js_1.logger.info(`Fetching template: ${category}/${name}`);
                 try {
                     let content = '';
                     if (category === 'game') {
@@ -800,7 +800,7 @@ return {
                     }
                     else {
                         // Handle case where category is not 'game' or 'script'
-                        logger_1.logger.warn(`Unknown template category requested: ${category}`);
+                        logger_js_1.logger.warn(`Unknown template category requested: ${category}`);
                         content = `-- Roblex Studio Template
 -- Unknown template category: ${category}
 
@@ -809,7 +809,7 @@ print("Available categories: game, script")
 `;
                     }
                     if (!content) {
-                        logger_1.logger.warn(`Template not found: ${category}/${name}`);
+                        logger_js_1.logger.warn(`Template not found: ${category}/${name}`);
                         return { contents: [], error: new errorHandler_1.NotFoundError(`Template not found: ${category}/${name}`) };
                     }
                     // Define content part inline, letting TS infer type within the array
@@ -824,15 +824,15 @@ print("Available categories: game, script")
                 }
                 catch (error) {
                     const errorMessage = error instanceof Error ? error.message : String(error);
-                    logger_1.logger.error(`Error fetching template: ${category}/${name}`, { error: errorMessage });
+                    logger_js_1.logger.error(`Error fetching template: ${category}/${name}`, { error: errorMessage });
                     return { contents: [], error: new errorHandler_1.DatastoreError(`Error fetching template: ${errorMessage}`) };
                 }
             });
-            logger_1.logger.debug('Template resources registered successfully.');
+            logger_js_1.logger.debug('Template resources registered successfully.');
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
-            logger_1.logger.error('Failed to register template resources', { error: errorMessage });
+            logger_js_1.logger.error('Failed to register template resources', { error: errorMessage });
         }
     }
 };

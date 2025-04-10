@@ -9,7 +9,7 @@ exports.openCloudConnector = void 0;
 const axios_1 = __importDefault(require("axios"));
 const zod_1 = require("zod");
 // @ts-ignore
-const logger_js_1 = require("../utils/logger.js");
+const logger_js_1 = require("../../utils/logger.js");
 // Define Zod schemas for tool parameters
 const listUniversesSchema = zod_1.z.object({}); // No parameters needed
 const getUniverseSchema = zod_1.z.object({

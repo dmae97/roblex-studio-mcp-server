@@ -1,10 +1,10 @@
 import { BaseModel } from './BaseModel.js';
-import { ModelState } from './types.js';
+import { ModelState, IModel } from './types.js';
 /**
  * Roblox Studio 모델 클래스
  * 스크립트, UI, 서비스 등 Roblox Studio의 다양한 요소를 표현합니다.
  */
-export declare class RoblexStudioBaseModel extends BaseModel {
+export declare class RoblexStudioBaseModel extends BaseModel implements IModel {
     constructor(id: string, initialState?: Record<string, unknown>);
     protected getModelType(): 'script' | 'ui' | 'service' | null;
     setValue(key: string, value: unknown): void;

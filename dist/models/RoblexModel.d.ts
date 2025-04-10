@@ -1,11 +1,11 @@
 /// <reference types="node" />
 import { EventEmitter } from 'events';
-import { ModelState, ChangeListener, BatchChangeListener, PropertyChangeListener, ResetListener } from './types.js';
+import { ModelState, ChangeListener, BatchChangeListener, PropertyChangeListener, ResetListener, IModel } from './types.js';
 /**
  * Base model class for Roblex studio components
  * Implements the Model part of Model-Context-Protocol pattern
  */
-export declare class RoblexModel extends EventEmitter {
+export declare class RoblexModel extends EventEmitter implements IModel {
     private _state;
     private _name;
     private _eventHandlers;

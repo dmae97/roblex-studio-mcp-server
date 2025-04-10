@@ -1,85 +1,39 @@
-/// <reference types="node" />
-import { EventEmitter } from 'events';
+import { Logger, McpTransport, RunnableTool, ToolCallHandler, Schema } from '../sdk';
 /**
- * Type for a tool callback function
- */
-export type ToolCallback = (args: any) => Promise<any> | any;
-/**
- * Transport interface for MCP communication
- */
-export interface Transport {
-    sessionId: string;
-    send(message: any): Promise<void>;
-    onMessage(handler: (message: any) => Promise<void>): void;
-    disconnect(): Promise<void>;
-}
-/**
- * Server configuration options
+ * McpServer 옵션 인터페이스
  */
 export interface McpServerOptions {
     name: string;
     version: string;
-    logger?: any;
+    logger?: Logger;
 }
 /**
- * Simple MCP Server implementation
- * Handles connections, tools, and message dispatching
+ * Roblex Studio MCP Server 구현
  */
-export declare class McpServer extends EventEmitter {
-    private _name;
-    private _version;
-    private _tools;
-    private _transports;
-    private _logger;
-    /**
-     * Create a new MCP server
-     * @param options Server configuration options
-     */
+export declare class McpServer {
+    private options;
+    private registry;
+    private transports;
+    private toolHandlers;
     constructor(options: McpServerOptions);
     /**
-     * Get server name
+     * 트랜스포트를 서버에 연결합니다
      */
-    get name(): string;
+    connect(transport: McpTransport): Promise<void>;
     /**
-     * Get server version
+     * MCP 요청을 처리합니다
      */
-    get version(): string;
+    private handleRequest;
     /**
-     * Connect a transport to the server
-     * @param transport Transport implementation
+     * 도구 호출 요청을 처리합니다
      */
-    connect(transport: Transport): Promise<void>;
+    private handleToolCallRequest;
     /**
-     * Handle incoming messages
-     * @param transport Source transport
-     * @param message Message data
+     * 서버에 도구를 등록합니다
      */
-    private _handleMessage;
+    tool(name: string, schema: Schema, handler: ToolCallHandler): RunnableTool;
     /**
-     * Handle tool call messages
-     * @param transport Source transport
-     * @param message Tool call message
+     * 모든 연결된 트랜스포트를 닫습니다
      */
-    private _handleToolCall;
-    /**
-     * Register a tool
-     * @param name Tool name
-     * @param callback Tool implementation
-     */
-    tool(name: string, callback: ToolCallback): void;
-    /**
-     * Tool registry interface
-     */
-    get tools(): {
-        add: (name: string, callback: ToolCallback) => void;
-    };
-    /**
-     * Disconnect a transport
-     * @param sessionId Session ID to disconnect
-     */
-    disconnect(sessionId: string): Promise<void>;
-    /**
-     * Disconnect all transports
-     */
-    disconnectAll(): Promise<void>;
+    close(): Promise<void>;
 }

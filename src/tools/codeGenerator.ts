@@ -1,46 +1,41 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import { logger } from '../utils/logger.js';
-
-// Define interface for the parameters based on Zod schema
-interface CodeGeneratorParams {
-  scriptType: 'ServerScript' | 'LocalScript' | 'ModuleScript';
-  functionality: string;
-  includeComments: boolean;
-  targetRoblexVersion?: string;
-}
-
+import { logger } from '../utils/logger';
 
 /**
  * Tool for generating Roblex code/scripts based on user specifications
  */
 export const codeGenerator = {
-  register: (server: McpServer) => {
-    (server as any).tool(
-      'generate-roblex-code',
-      {
-        // Input schema using Zod
-        scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']),
-        functionality: z.string().describe('Description of what the script should do'),
-        includeComments: z.boolean().default(true).describe('Whether to include comments in the code'),
-        targetRoblexVersion: z.string().optional().describe('Target Roblex version')
-      },
-      async ({ scriptType, functionality, includeComments, targetRoblexVersion }: CodeGeneratorParams) => {
-        logger.info(`Generating ${scriptType} for: ${functionality}`);
-        
-        try {
-          // In a real implementation, this could use an LLM or other code generation service
-          // For now, we'll return a template based on the script type
-          let generatedCode = '';
-          
-          const timestamp = new Date().toISOString();
-          const header = includeComments 
-            ? `--[[\n  Generated ${scriptType}\n  Functionality: ${functionality}\n  Generated on: ${timestamp}\n  ${targetRoblexVersion ? `Target Version: ${targetRoblexVersion}` : ''}\n--]]\n\n`
-            : '';
-          
-          switch (scriptType) {
-            case 'ServerScript':
-              generatedCode = `${header}local ServerStorage = game:GetService("ServerStorage")
+    register: (server: any) => {
+        server.tool('generate-roblex-code', {
+            // Input schema using Zod
+            scriptType: z.enum(['ServerScript', 'LocalScript', 'ModuleScript']),
+            functionality: z.string().describe('Description of what the script should do'),
+            includeComments: z.boolean().default(true).describe('Whether to include comments in the code'),
+            targetRoblexVersion: z.string().optional().describe('Target Roblex version')
+        }, async ({ 
+            scriptType, 
+            functionality, 
+            includeComments, 
+            targetRoblexVersion 
+        }: { 
+            scriptType: string; 
+            functionality: string; 
+            includeComments: boolean; 
+            targetRoblexVersion?: string 
+        }) => {
+            logger.info(`Generating ${scriptType} for: ${functionality}`);
+            try {
+                // In a real implementation, this could use an LLM or other code generation service
+                // For now, we'll return a template based on the script type
+                let generatedCode = '';
+                const timestamp = new Date().toISOString();
+                const header = includeComments
+                    ? `--[[\n  Generated ${scriptType}\n  Functionality: ${functionality}\n  Generated on: ${timestamp}\n  ${targetRoblexVersion ? `Target Version: ${targetRoblexVersion}` : ''}\n--]]\n\n`
+                    : '';
+
+                switch (scriptType) {
+                    case 'ServerScript':
+                        generatedCode = `${header}local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- Main server functionality for: ${functionality}
@@ -51,10 +46,9 @@ end
 
 initialize()
 `;
-              break;
-            
-            case 'LocalScript':
-              generatedCode = `${header}local Players = game:GetService("Players")
+                        break;
+                    case 'LocalScript':
+                        generatedCode = `${header}local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
@@ -66,10 +60,9 @@ end
 
 initialize()
 `;
-              break;
-            
-            case 'ModuleScript':
-              generatedCode = `${header}local module = {}
+                        break;
+                    case 'ModuleScript':
+                        generatedCode = `${header}local module = {}
 
 -- Module functionality for: ${functionality}
 
@@ -86,33 +79,32 @@ end
 
 return module
 `;
-              break;
-          }
-          
-          return {
-            content: [
-              { 
-                type: 'text', 
-                text: generatedCode 
-              }
-            ]
-          };
-        } catch (error) {
-          // Log only the error message for safety, consistent with the return block
-          logger.error(`Error generating code: ${error instanceof Error ? error.message : String(error)}`);
-          return {
-            content: [
-              { 
-                type: 'text', 
-                text: `Error generating code: ${error instanceof Error ? error.message : String(error)}` 
-              }
-            ],
-            isError: true
-          };
-        }
-      }
-    );
-    
-    logger.debug('Code generator tool registered');
-  }
-};
+                        break;
+                }
+
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: generatedCode
+                        }
+                    ]
+                };
+            } catch (error) {
+                // Log only the error message for safety, consistent with the return block
+                logger.error(`Error generating code: ${error instanceof Error ? error.message : String(error)}`);
+                return {
+                    content: [
+                        {
+                            type: 'text',
+                            text: `Error generating code: ${error instanceof Error ? error.message : String(error)}`
+                        }
+                    ],
+                    isError: true
+                };
+            }
+        });
+        
+        logger.debug('Code generator tool registered');
+    }
+}; 

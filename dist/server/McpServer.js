@@ -1,181 +1,139 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.McpServer = void 0;
-const events_1 = require("events");
+const sdk_1 = require("../sdk");
+const logger_1 = require("../utils/logger");
+const uuid_1 = require("uuid");
 /**
- * Simple MCP Server implementation
- * Handles connections, tools, and message dispatching
+ * Roblex Studio MCP Server 구현
  */
-class McpServer extends events_1.EventEmitter {
-    _name;
-    _version;
-    _tools;
-    _transports;
-    _logger;
-    /**
-     * Create a new MCP server
-     * @param options Server configuration options
-     */
+class McpServer {
+    options;
+    registry;
+    transports;
+    toolHandlers;
     constructor(options) {
-        super();
-        this._name = options.name || 'MCP Server';
-        this._version = options.version || '1.0.0';
-        this._tools = new Map();
-        this._transports = new Map();
-        this._logger = options.logger || console;
-        this._logger.info(`MCP Server created: ${this._name} v${this._version}`);
+        this.options = options;
+        this.registry = new sdk_1.DefaultRegistry();
+        this.transports = new Map();
+        this.toolHandlers = new Map();
+        const log = options.logger || logger_1.logger;
+        log.info(`MCP Server initialized: ${options.name} v${options.version}`);
     }
     /**
-     * Get server name
-     */
-    get name() {
-        return this._name;
-    }
-    /**
-     * Get server version
-     */
-    get version() {
-        return this._version;
-    }
-    /**
-     * Connect a transport to the server
-     * @param transport Transport implementation
+     * 트랜스포트를 서버에 연결합니다
      */
     async connect(transport) {
-        this._transports.set(transport.sessionId, transport);
-        // Set up message handler
-        transport.onMessage(async (message) => {
-            await this._handleMessage(transport, message);
+        const transportId = transport.sessionId || (0, uuid_1.v4)();
+        this.transports.set(transportId, transport);
+        // 트랜스포트에 메시지 핸들러 등록
+        transport.onMessage(async (request) => {
+            return this.handleRequest(request, transport);
         });
-        this._logger.info(`Transport connected: ${transport.sessionId}`);
-        this.emit('connect', transport);
-        // Send server info as initial message
-        await transport.send({
-            type: 'server_info',
-            data: {
-                name: this._name,
-                version: this._version,
-                tools: Array.from(this._tools.keys())
-            }
-        });
+        logger_1.logger.info(`Transport connected to MCP Server: ${transportId}`);
     }
     /**
-     * Handle incoming messages
-     * @param transport Source transport
-     * @param message Message data
+     * MCP 요청을 처리합니다
      */
-    async _handleMessage(transport, message) {
+    async handleRequest(request, transport) {
         try {
-            this._logger.debug(`Received message from ${transport.sessionId}`, message);
-            if (message.type === 'tool_call') {
-                await this._handleToolCall(transport, message);
+            logger_1.logger.debug(`Received request: ${JSON.stringify(request)}`);
+            if (request.type === sdk_1.McpRequestType.ToolCallRequest) {
+                return this.handleToolCallRequest(request, transport);
             }
-            else {
-                this._logger.warn(`Unknown message type: ${message.type}`);
-                await transport.send({
-                    type: 'error',
-                    data: {
-                        message: `Unknown message type: ${message.type}`
-                    }
-                });
-            }
-        }
-        catch (error) {
-            this._logger.error(`Error handling message: ${error instanceof Error ? error.message : String(error)}`);
-            await transport.send({
+            return {
                 type: 'error',
-                data: {
-                    message: 'Error processing message',
-                    details: error instanceof Error ? error.message : String(error)
+                error: {
+                    message: `Unsupported request type: ${request.type}`,
+                    code: 'UNSUPPORTED_REQUEST_TYPE'
                 }
-            });
-        }
-    }
-    /**
-     * Handle tool call messages
-     * @param transport Source transport
-     * @param message Tool call message
-     */
-    async _handleToolCall(transport, message) {
-        const { toolName, args } = message.data;
-        if (!this._tools.has(toolName)) {
-            this._logger.warn(`Tool not found: ${toolName}`);
-            await transport.send({
-                type: 'tool_result',
-                data: {
-                    toolName,
-                    success: false,
-                    error: `Tool not found: ${toolName}`
-                }
-            });
-            return;
-        }
-        try {
-            const tool = this._tools.get(toolName);
-            const result = await tool(args);
-            await transport.send({
-                type: 'tool_result',
-                data: {
-                    toolName,
-                    success: true,
-                    result
-                }
-            });
+            };
         }
         catch (error) {
-            this._logger.error(`Error executing tool ${toolName}: ${error instanceof Error ? error.message : String(error)}`);
-            await transport.send({
-                type: 'tool_result',
-                data: {
-                    toolName,
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error)
+            logger_1.logger.error(`Error handling request: ${error.message}`);
+            return {
+                type: 'error',
+                error: {
+                    message: error.message,
+                    code: 'INTERNAL_SERVER_ERROR'
                 }
-            });
+            };
         }
     }
     /**
-     * Register a tool
-     * @param name Tool name
-     * @param callback Tool implementation
+     * 도구 호출 요청을 처리합니다
      */
-    tool(name, callback) {
-        if (this._tools.has(name)) {
-            throw new Error(`Tool already registered: ${name}`);
+    async handleToolCallRequest(request, transport) {
+        const { toolCall } = request;
+        if (!toolCall) {
+            return {
+                type: 'error',
+                error: {
+                    message: 'Tool call request is missing toolCall field',
+                    code: 'INVALID_REQUEST'
+                }
+            };
         }
-        this._tools.set(name, callback);
-        this._logger.info(`Tool registered: ${name}`);
+        const { name, parameters } = toolCall;
+        const handler = this.toolHandlers.get(name);
+        if (!handler) {
+            return {
+                type: 'error',
+                error: {
+                    message: `Tool not found: ${name}`,
+                    code: 'TOOL_NOT_FOUND'
+                }
+            };
+        }
+        try {
+            const result = await handler(parameters);
+            return {
+                type: 'success',
+                result
+            };
+        }
+        catch (error) {
+            logger_1.logger.error(`Error executing tool ${name}: ${error.message}`);
+            return {
+                type: 'error',
+                error: {
+                    message: error.message || 'Tool execution failed',
+                    code: 'TOOL_EXECUTION_ERROR'
+                }
+            };
+        }
     }
     /**
-     * Tool registry interface
+     * 서버에 도구를 등록합니다
      */
-    get tools() {
+    tool(name, schema, handler) {
+        this.toolHandlers.set(name, handler);
+        this.registry.registerTool(name, schema);
+        logger_1.logger.info(`Registered tool: ${name}`);
         return {
-            add: (name, callback) => this.tool(name, callback)
+            name,
+            schema,
+            run: handler
         };
     }
     /**
-     * Disconnect a transport
-     * @param sessionId Session ID to disconnect
+     * 모든 연결된 트랜스포트를 닫습니다
      */
-    async disconnect(sessionId) {
-        const transport = this._transports.get(sessionId);
-        if (transport) {
-            await transport.disconnect();
-            this._transports.delete(sessionId);
-            this._logger.info(`Transport disconnected: ${sessionId}`);
-            this.emit('disconnect', sessionId);
+    async close() {
+        logger_1.logger.info('Closing MCP Server...');
+        for (const transport of this.transports.values()) {
+            try {
+                // 트랜스포트에 close 메서드가 있으면 호출
+                if (typeof transport.close === 'function') {
+                    await transport.close();
+                }
+            }
+            catch (error) {
+                logger_1.logger.error(`Error closing transport: ${error}`);
+            }
         }
-    }
-    /**
-     * Disconnect all transports
-     */
-    async disconnectAll() {
-        const sessionIds = Array.from(this._transports.keys());
-        for (const sessionId of sessionIds) {
-            await this.disconnect(sessionId);
-        }
-        this._logger.info('All transports disconnected');
+        this.transports.clear();
+        logger_1.logger.info('MCP Server closed');
     }
 }
 exports.McpServer = McpServer;

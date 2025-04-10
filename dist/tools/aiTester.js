@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerAiTester = void 0;
 const zod_1 = require("zod");
-const logger_js_1 = require("../utils/logger.js");
+const logger_js_1 = require("../../utils/logger.js");
 // Define input schema using Zod
 const AiTesterInputSchema = zod_1.z.object({
     universeId: zod_1.z.string().describe('테스트할 게임의 Universe ID'),

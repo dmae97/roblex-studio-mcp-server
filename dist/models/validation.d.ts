@@ -13,21 +13,21 @@ export declare const scriptModelSchema: z.ZodObject<{
     enabled: z.ZodDefault<z.ZodBoolean>;
     properties: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
-    enabled: boolean;
-    content: string;
-    type: "ServerScript" | "LocalScript" | "ModuleScript";
-    parent?: string | undefined;
-    id?: string | undefined;
-    properties?: Record<string, any> | undefined;
+    name?: string;
+    enabled?: boolean;
+    parent?: string;
+    id?: string;
+    content?: string;
+    type?: "ServerScript" | "LocalScript" | "ModuleScript";
+    properties?: Record<string, any>;
 }, {
-    name: string;
-    content: string;
-    type: "ServerScript" | "LocalScript" | "ModuleScript";
-    enabled?: boolean | undefined;
-    parent?: string | undefined;
-    id?: string | undefined;
-    properties?: Record<string, any> | undefined;
+    name?: string;
+    enabled?: boolean;
+    parent?: string;
+    id?: string;
+    content?: string;
+    type?: "ServerScript" | "LocalScript" | "ModuleScript";
+    properties?: Record<string, any>;
 }>;
 export declare const uiModelSchema: z.ZodObject<{
     name: z.ZodString;
@@ -38,54 +38,54 @@ export declare const uiModelSchema: z.ZodObject<{
         x: z.ZodNumber;
         y: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        x: number;
-        y: number;
+        x?: number;
+        y?: number;
     }, {
-        x: number;
-        y: number;
+        x?: number;
+        y?: number;
     }>>;
     size: z.ZodOptional<z.ZodObject<{
         width: z.ZodNumber;
         height: z.ZodNumber;
     }, "strip", z.ZodTypeAny, {
-        width: number;
-        height: number;
+        width?: number;
+        height?: number;
     }, {
-        width: number;
-        height: number;
+        width?: number;
+        height?: number;
     }>>;
     visible: z.ZodDefault<z.ZodBoolean>;
     properties: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
-    visible: boolean;
-    type: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
+    name?: string;
+    visible?: boolean;
     position?: {
-        x: number;
-        y: number;
-    } | undefined;
-    parent?: string | undefined;
-    id?: string | undefined;
-    properties?: Record<string, any> | undefined;
+        x?: number;
+        y?: number;
+    };
+    parent?: string;
+    id?: string;
+    type?: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
+    properties?: Record<string, any>;
     size?: {
-        width: number;
-        height: number;
-    } | undefined;
+        width?: number;
+        height?: number;
+    };
 }, {
-    name: string;
-    type: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
-    visible?: boolean | undefined;
+    name?: string;
+    visible?: boolean;
     position?: {
-        x: number;
-        y: number;
-    } | undefined;
-    parent?: string | undefined;
-    id?: string | undefined;
-    properties?: Record<string, any> | undefined;
+        x?: number;
+        y?: number;
+    };
+    parent?: string;
+    id?: string;
+    type?: "Frame" | "Button" | "TextLabel" | "TextBox" | "ImageLabel" | "ScrollingFrame" | "Other";
+    properties?: Record<string, any>;
     size?: {
-        width: number;
-        height: number;
-    } | undefined;
+        width?: number;
+        height?: number;
+    };
 }>;
 export declare const serviceModelSchema: z.ZodObject<{
     name: z.ZodString;
@@ -94,17 +94,17 @@ export declare const serviceModelSchema: z.ZodObject<{
     enabled: z.ZodDefault<z.ZodBoolean>;
     properties: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodAny>>;
 }, "strip", z.ZodTypeAny, {
-    name: string;
-    enabled: boolean;
-    serviceType: string;
-    id?: string | undefined;
-    properties?: Record<string, any> | undefined;
+    name?: string;
+    enabled?: boolean;
+    id?: string;
+    properties?: Record<string, any>;
+    serviceType?: string;
 }, {
-    name: string;
-    serviceType: string;
-    enabled?: boolean | undefined;
-    id?: string | undefined;
-    properties?: Record<string, any> | undefined;
+    name?: string;
+    enabled?: boolean;
+    id?: string;
+    properties?: Record<string, any>;
+    serviceType?: string;
 }>;
 /**
  * 모델 데이터 유효성 검사

@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.codeGenerator = void 0;
 const zod_1 = require("zod");
-const logger_js_1 = require("../utils/logger.js");
+const logger_1 = require("../utils/logger");
 /**
  * Tool for generating Roblex code/scripts based on user specifications
  */
@@ -15,7 +15,7 @@ exports.codeGenerator = {
             includeComments: zod_1.z.boolean().default(true).describe('Whether to include comments in the code'),
             targetRoblexVersion: zod_1.z.string().optional().describe('Target Roblex version')
         }, async ({ scriptType, functionality, includeComments, targetRoblexVersion }) => {
-            logger_js_1.logger.info(`Generating ${scriptType} for: ${functionality}`);
+            logger_1.logger.info(`Generating ${scriptType} for: ${functionality}`);
             try {
                 // In a real implementation, this could use an LLM or other code generation service
                 // For now, we'll return a template based on the script type
@@ -83,7 +83,7 @@ return module
             }
             catch (error) {
                 // Log only the error message for safety, consistent with the return block
-                logger_js_1.logger.error(`Error generating code: ${error instanceof Error ? error.message : String(error)}`);
+                logger_1.logger.error(`Error generating code: ${error instanceof Error ? error.message : String(error)}`);
                 return {
                     content: [
                         {
@@ -95,7 +95,7 @@ return module
                 };
             }
         });
-        logger_js_1.logger.debug('Code generator tool registered');
+        logger_1.logger.debug('Code generator tool registered');
     }
 };
 //# sourceMappingURL=codeGenerator.js.map

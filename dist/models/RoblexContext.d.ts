@@ -1,5 +1,4 @@
-import { RoblexModel } from './RoblexModel.js';
-import { ModelState } from './types.js';
+import { ModelState, IModel } from './types.js';
 /**
  * Context class for Roblex components
  * Implements the Context part of Model-Context-Protocol pattern
@@ -20,7 +19,7 @@ export declare class RoblexContext {
      * Register a model with this context
      * @param model Model to register
      */
-    registerModel(model: RoblexModel): void;
+    registerModel(model: IModel): void;
     /**
      * Unregister a model from this context
      * @param modelName Name of the model to unregister
@@ -32,12 +31,12 @@ export declare class RoblexContext {
      * @param modelName Name of the model to retrieve
      * @returns The model or undefined if not found
      */
-    getModel(modelName: string): RoblexModel | undefined;
+    getModel(modelName: string): IModel | undefined;
     /**
      * Get all models in this context
      * @returns Array of all registered models
      */
-    getAllModels(): RoblexModel[];
+    getAllModels(): IModel[];
     /**
      * Get a combined state from all models
      * @returns Combined state object with model names as keys

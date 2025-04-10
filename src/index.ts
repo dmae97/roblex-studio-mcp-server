@@ -1,9 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { McpError } from '@modelcontextprotocol/sdk/types';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import dotenv from 'dotenv';
 import http from 'http';
 import { logger } from './utils/logger';
@@ -16,34 +13,48 @@ import { roblexPrompts } from './prompts/index';
 import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './models/index';
 import * as auth from './utils/auth';
 
-// Load environment variables
+// 서버 구현 가져오기
+import { 
+  McpServerFactory, 
+  McpServer,
+  SSEServerTransport,
+  RoblexStudioService 
+} from './server/index';
+
+// 컴포넌트 내보내기
+export * from './server/index';
+export * from './models/index';
+
+// 환경 변수 로드
 dotenv.config();
 
-// Initialize authentication system
+// 인증 시스템 초기화
 auth.init();
 
-// Server configuration
-const PORT = Number(process.env.PORT || 3001);
+// 서버 설정
+const PORT = process.env.PORT || 3002;
 const SERVER_NAME = process.env.SERVER_NAME || 'Roblex Studio MCP Server';
 const SERVER_VERSION = process.env.SERVER_VERSION || '1.0.0';
 const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 
-// Create MCP Server
-const server = new McpServer({
+// MCP 서버 생성
+const server = McpServerFactory.create({
   name: SERVER_NAME,
   version: SERVER_VERSION,
-  logger // Pass the custom logger
+  logger
 });
 
-// Register tools, resources, and prompts
+logger.info('MCP 서버 생성 완료');
+
+// 도구, 리소스, 프롬프트 등록
 roblexTools.register(server);
 roblexResources.register(server);
 roblexPrompts.register(server);
 
-// Create Express app
+// Express 앱 생성
 const app = express();
 
-// Configure CORS
+// CORS 설정
 const corsOptions = {
   origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
   credentials: true
@@ -52,28 +63,29 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
-// Create HTTP server from Express app
+// Express 앱에서 HTTP 서버 생성
 const httpServer = http.createServer(app);
 
-// Storage for active transports
+// 활성 트랜스포트 저장소
 const transports: { [sessionId: string]: SSEServerTransport } = {};
 
-// Storage for active Roblox Studio adapters
+// 활성 Roblox Studio 어댑터 저장소
 const studioAdapters: { [sessionId: string]: ReturnType<typeof roblexStudioAdapterFactory> } = {};
 
-// Authentication middleware for protected routes
+// 인증 미들웨어
 const authMiddleware = REQUIRE_AUTH ? apiKeyAuth : (req: express.Request, res: express.Response, next: express.NextFunction) => next();
 
-// Login endpoint
-app.post('/auth/login', async (req, res) => {
+// 로그인 엔드포인트
+app.post('/auth/login', (async (req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> => {
   const { username, password, apiKey } = req.body;
   
-  // Check if using API key authentication
+  // API 키 인증 확인
   if (apiKey) {
     const result = auth.verifyApiKey(apiKey);
     
     if (!result.valid) {
-      return res.status(403).json({ error: 'Invalid API key' });
+      res.status(403).json({ error: 'Invalid API key' });
+      return;
     }
     
     const sessionId = auth.generateSessionId('api');
@@ -85,14 +97,15 @@ app.post('/auth/login', async (req, res) => {
       role: result.role 
     });
     
-    return res.status(200).json({ 
+    res.status(200).json({ 
       token,
       sessionId,
       user: { name: result.name, role: result.role }
     });
+    return;
   }
   
-  // Simple username/password authentication (replace with proper auth in production)
+  // 기본 사용자명/비밀번호 인증
   if (username === 'admin' && password === process.env.ADMIN_PASSWORD) {
     const sessionId = auth.generateSessionId('user');
     auth.registerSession(sessionId, username, 'admin', req.ip || 'unknown');
@@ -103,58 +116,61 @@ app.post('/auth/login', async (req, res) => {
       role: 'admin' 
     });
     
-    // Set session cookie
+    // 세션 쿠키 설정
     res.cookie('sessionId', sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: Number(process.env.SESSION_TIMEOUT || 3600) * 1000 // Use session timeout from env
+      maxAge: Number(process.env.SESSION_TIMEOUT || 3600) * 1000
     });
     
-    return res.status(200).json({ 
+    res.status(200).json({ 
       token,
       sessionId,
       user: { username, role: 'admin' }
     });
+    return;
   }
   
-  return res.status(401).json({ error: 'Invalid credentials' });
-});
+  res.status(401).json({ error: 'Invalid credentials' });
+}) as express.RequestHandler);
 
-// Logout endpoint
-app.post('/auth/logout', (req, res) => {
+// 로그아웃 엔드포인트
+app.post('/auth/logout', ((req: express.Request, res: express.Response, next: express.NextFunction): void => {
   const sessionId = req.query.sessionId as string || req.cookies?.sessionId;
   
   if (sessionId) {
     auth.revokeSession(sessionId);
     
-    // Clear session cookie
+    // 세션 쿠키 삭제
     res.clearCookie('sessionId');
     
-    // Disconnect any active adapter
+    // 활성 어댑터 연결 해제
     if (studioAdapters[sessionId]) {
       studioAdapters[sessionId].disconnect();
       delete studioAdapters[sessionId];
     }
     
-    return res.status(200).json({ success: true });
+    res.status(200).json({ success: true });
+    return;
   }
   
-  return res.status(400).json({ error: 'No active session' });
-});
+  res.status(400).json({ error: 'No active session' });
+}) as express.RequestHandler);
 
-// SSE endpoint
-app.get('/sse', authMiddleware, async (req, res) => {
+// SSE 엔드포인트
+app.get('/sse', authMiddleware, ((req: express.Request, res: express.Response, next: express.NextFunction): void => {
+  // SSE 트랜스포트 생성
   const transport = new SSEServerTransport('/messages', res);
   const sessionId = req.query.sessionId as string || transport.sessionId;
   
   transports[sessionId] = transport;
   
-  // Create a new Roblox Studio adapter for this session
+  // 새 Roblox Studio 어댑터 생성
   const adapter = roblexStudioAdapterFactory(sessionId);
   studioAdapters[sessionId] = adapter;
   adapter.connect();
   
-  // Register the session if it's not already registered
+  // 세션이 등록되지 않은 경우 등록
   if (!auth.isSessionValid(sessionId)) {
     const userId = (req as any).apiKey?.name || 'anonymous';
     const role = (req as any).apiKey?.role || 'user';
@@ -165,195 +181,99 @@ app.get('/sse', authMiddleware, async (req, res) => {
   
   logger.info(`New SSE connection established: ${sessionId}`);
   
+  // 연결 종료 감지
   res.on('close', () => {
     logger.info(`SSE connection closed: ${sessionId}`);
+    delete transports[sessionId];
     
-    // Disconnect the Roblox Studio adapter
     if (studioAdapters[sessionId]) {
       studioAdapters[sessionId].disconnect();
       delete studioAdapters[sessionId];
     }
-    
-    delete transports[sessionId];
   });
   
-  await server.connect(transport);
-});
+  // MCP 서버에 트랜스포트 연결
+  server.connect(transport).catch(error => {
+    logger.error(`Error connecting transport to MCP server: ${error}`);
+  });
+}) as express.RequestHandler);
 
-// Messages endpoint
-app.post('/messages', authMiddleware, async (req, res) => {
-  const sessionId = req.query.sessionId as string;
+// 메시지 엔드포인트
+app.post('/messages', authMiddleware, (async (req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> => {
+  const sessionId = req.query.sessionId as string || req.body.sessionId;
+  
+  if (!sessionId) {
+    res.status(400).json({ error: 'No session ID provided' });
+    return;
+  }
+  
   const transport = transports[sessionId];
   
-  if (transport) {
-    // Update session activity
-    auth.updateSessionActivity(sessionId);
-    
-    await transport.handlePostMessage(req, res);
-  } else {
-    logger.error(`No transport found for sessionId: ${sessionId}`);
-    res.status(400).send('No transport found for sessionId');
-  }
-});
-
-// Studio API endpoint - For direct communication from Studio plugin
-app.post('/studio/api', authMiddleware, async (req, res) => {
-  const sessionId = req.query.sessionId as string;
-  const adapter = studioAdapters[sessionId];
-  
-  if (!adapter) {
-    logger.error(`No Roblox Studio adapter found for sessionId: ${sessionId}`);
-    res.status(400).json({ error: 'No active Roblox Studio session found' });
+  if (!transport) {
+    res.status(404).json({ error: 'Transport not found' });
     return;
   }
   
   try {
-    // Assuming the plugin sends messages in the format { messageType, data }
-    const { messageType, data } = req.body;
-    logger.info(`Received studio message: ${messageType}`, { sessionId, data });
-    
-    // Let the adapter handle the message
-    const result = await adapter.handleMessage(messageType, data);
-    res.status(200).json(result);
-  } catch (error) {
-    logger.error(`Error handling Roblox Studio message`, { 
-      error: error instanceof Error ? error.message : String(error),
-      sessionId
+    const response = await transport.handlePostMessage(req);
+    res.json(response);
+  } catch (error: any) {
+    logger.error(`Error handling message: ${error.message}`);
+    res.status(500).json({ 
+      error: 'Error handling message',
+      message: error.message
     });
-    res.status(500).json({ error: 'Error processing request' });
   }
-});
+}) as express.RequestHandler);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    name: SERVER_NAME,
-    version: SERVER_VERSION,
-    activeSessions: Object.keys(transports).length,
-    activeStudioSessions: Object.keys(studioAdapters).length
-  });
-});
-
-// Roblox Studio status endpoint
+// 스튜디오 상태 엔드포인트
 app.get('/studio/status', authMiddleware, (req, res) => {
   const activeAdapters = Object.values(studioAdapters).filter((adapter) => adapter.isConnected);
   
   res.status(200).json({
     activeConnections: activeAdapters.length,
-    globalModelCount: globalContext.getAllModels().length,
-    // Cannot directly access private _handlers, so we'll omit this for now
-    // handlers: Array.from(new Set(
-    //   Object.values(studioAdapters).flatMap((adapter) => 
-    //     Array.from(adapter.protocol._handlers.keys())
-    //   )
-    // ))
+    status: 'ok'
   });
 });
 
-// Secured API endpoints
-const securedRouter = express.Router();
-app.use('/api', authMiddleware, securedRouter);
-
-// Get all sessions endpoint
-securedRouter.get('/sessions', (req, res) => {
-  // Only admin users can access this endpoint
-  const userRole = (req as any).apiKey?.role || (req as any).user?.role;
+// 정상 종료 처리
+function gracefulShutdown(): void {
+  logger.info('Shutting down server...');
   
-  if (userRole !== 'admin') {
-    return res.status(403).json({ error: 'Insufficient permissions' });
-  }
-  
-  const sessionIds = Object.keys(transports);
-  const sessions = sessionIds.map(sessionId => ({
-    sessionId,
-    hasStudioAdapter: !!studioAdapters[sessionId],
-    sessionInfo: auth.getSessionInfo(sessionId)
-  }));
-  
-  res.status(200).json({ sessions });
-});
-
-// Get model by ID endpoint
-securedRouter.get('/models/:modelId', (req, res) => {
-  const modelId = req.params.modelId;
-  const model = globalContext.getModel(modelId);
-  
-  if (!model) {
-    return res.status(404).json({ error: `Model ${modelId} not found` });
-  }
-  
-  res.status(200).json({
-    id: model.name,
-    state: model.state
-  });
-});
-
-// Initialize WebSocket synchronization system
-// WebSocket 동기화 시스템 비활성화 (포트 충돌 문제 해결)
-// sync.init(httpServer, '/sync');
-// 대신 로그 메시지만 출력
-logger.info('WebSocket synchronization system was disabled to prevent port conflicts');
-
-// Add 404 handler for non-existing routes
-app.use((req, res, next) => {
-  next(new NotFoundError(`Route not found: ${req.method} ${req.path}`));
-});
-
-// Add error handling middleware
-app.use(errorHandlerMiddleware);
-
-// Start the server
-httpServer.listen(PORT, () => {
-  logger.info(`${SERVER_NAME} v${SERVER_VERSION} started on port ${PORT}`);
-  logger.info(`SSE endpoint: http://localhost:${PORT}/sse`);
-  // WebSocket 동기화 엔드포인트 메시지 제거
-  // logger.info(`WebSocket sync endpoint: ws://localhost:${PORT}/sync`);
-});
-
-// Graceful shutdown handler
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
-
-// Uncaught exception handler
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught exception', {
-    name: error.name,
-    message: error.message,
-    stack: error.stack,
-    error: error.toString()
-  });
-  gracefulShutdown(); // Attempt graceful shutdown on uncaught exception
-});
-
-function gracefulShutdown() {
-  logger.info('Graceful shutdown initiated...');
-  
-  // Close active connections
-  Object.keys(studioAdapters).forEach(sessionId => {
-    const adapter = studioAdapters[sessionId];
-    if (adapter) {
-      try {
-        adapter.disconnect();
-        logger.info(`Disconnected Roblox Studio adapter: ${sessionId}`);
-      } catch (error) {
-        logger.error(`Error disconnecting adapter ${sessionId}`, { 
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
+  // 활성 어댑터 연결 해제
+  Object.values(studioAdapters).forEach((adapter) => {
+    try {
+      adapter.disconnect();
+    } catch (error) {
+      logger.error(`Error disconnecting adapter: ${error}`);
     }
   });
   
-  // Close HTTP server
+  // MCP 서버 종료
+  server.close().catch(error => {
+    logger.error(`Error closing MCP server: ${error}`);
+  });
+  
+  // HTTP 서버 종료
   httpServer.close(() => {
     logger.info('HTTP server closed');
-    // Additional cleanup if needed
     process.exit(0);
   });
   
-  // Force exit after timeout
+  // 강제 종료 타임아웃
   setTimeout(() => {
     logger.error('Forced shutdown after timeout');
     process.exit(1);
   }, 10000);
 }
+
+// 종료 신호 처리
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
+
+// 서버 시작
+httpServer.listen(PORT, () => {
+  logger.info(`MCP Server listening on port ${PORT}`);
+  logger.info(`Server Name: ${SERVER_NAME}`);
+  logger.info(`Server Version: ${SERVER_VERSION}`);
+});
