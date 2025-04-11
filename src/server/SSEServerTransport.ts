@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { logger } from '../utils/logger';
-import { Transport } from './McpServer';
+import { logger } from '../utils/logger.js';
+import { Transport } from './McpServer.js';
 
 /**
  * Server-Sent Events (SSE) transport for MCP server
