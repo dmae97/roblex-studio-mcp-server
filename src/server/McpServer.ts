@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
 
 /**
  * Type for a tool callback function
@@ -221,4 +221,4 @@ export class McpServer extends EventEmitter {
     
     this._logger.info('All transports disconnected');
   }
-} 
+}
