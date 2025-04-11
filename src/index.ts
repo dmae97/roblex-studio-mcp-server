@@ -3,32 +3,32 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import http from 'http';
-import { logger } from './utils/logger';
-import { apiKeyAuth } from './utils/auth';
-import * as sync from './utils/sync';
-import { errorHandlerMiddleware, NotFoundError } from './utils/errorHandler';
-import { roblexTools } from './tools/index';
-import { roblexResources } from './resources/index';
-import { roblexPrompts } from './prompts/index';
-import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './models/index';
-import * as auth from './utils/auth';
-import { security } from './utils/security';
+import { logger } from './utils/logger.js';
+import { apiKeyAuth } from './utils/auth.js';
+import * as sync from './utils/sync.js';
+import { errorHandlerMiddleware, NotFoundError } from './utils/errorHandler.js';
+import { roblexTools } from './tools/index.js';
+import { roblexResources } from './resources/index.js';
+import { roblexPrompts } from './prompts/index.js';
+import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './models/index.js';
+import * as auth from './utils/auth.js';
+import { security } from './utils/security.js';
 
 // Import our own implementations instead of from typescript-sdk
-import { McpServer } from './server/McpServer';
-import { SSEServerTransport } from './server/SSEServerTransport';
-import { StdioServerTransport } from './server/StdioServerTransport';
+import { McpServer } from './server/McpServer.js';
+import { SSEServerTransport } from './server/SSEServerTransport.js';
+import { StdioServerTransport } from './server/StdioServerTransport.js';
 
 // New imports for Sequential MCP
 import { 
   McpServerFactory, 
   RoblexStudioSequentialMcp, 
   RoblexStudioService 
-} from './server/index';
+} from './server/index.js';
 
 // Export our own components
-export * from './server/index';
-export * from './models/index';
+export * from './server/index.js';
+export * from './models/index.js';
 
 // Load environment variables
 dotenv.config();
