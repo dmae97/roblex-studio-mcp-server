@@ -16,8 +16,17 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "allowJs": true,
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "rootDirs": ["src"],
+    "paths": {
+      "*": ["node_modules/*"]
+    },
+    "lib": [
+      "es2022",
+      "dom"
+    ],
+    "allowSyntheticDefaultImports": true
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
 }
