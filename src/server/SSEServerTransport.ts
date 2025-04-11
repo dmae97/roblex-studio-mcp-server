@@ -1,142 +1,193 @@
-import { Transport } from './McpServer.js';
+import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { Response, Request } from 'express';
+import { Transport } from './McpServer.js';
 import { logger } from '../utils/logger.js';
 
 /**
- * Server-Sent Events (SSE) transport for MCP communication
+ * SSE Server Transport implementation
+ * Handles Server-Sent Events for real-time communication
  */
 export class SSEServerTransport implements Transport {
-  private _sessionId: string;
-  private _path: string;
-  private _res: Response;
-  private _messageHandler: ((message: any) => Promise<void>) | null = null;
-  private _isConnected: boolean = false;
-  
+  public readonly sessionId: string;
+  private readonly messagesPath: string;
+  private readonly res: express.Response;
+  private connected: boolean = true;
+  private lastHeartbeat: number = Date.now();
+  private heartbeatInterval: NodeJS.Timeout | null = null;
+  private reconnectAttempts: number = 0;
+  private readonly maxReconnectAttempts: number = 5;
+  private readonly heartbeatIntervalMs: number = 30000; // 30 seconds
+
   /**
    * Create a new SSE transport
-   * @param path URL path for the SSE endpoint
+   * @param messagesPath Path for receiving messages from client
    * @param res Express response object
    */
-  constructor(path: string, res: Response) {
-    this._sessionId = uuidv4();
-    this._path = path;
-    this._res = res;
+  constructor(messagesPath: string, res: express.Response) {
+    this.sessionId = uuidv4();
+    this.messagesPath = messagesPath;
+    this.res = res;
     
-    // Configure response for SSE
-    this._res.setHeader('Content-Type', 'text/event-stream');
-    this._res.setHeader('Cache-Control', 'no-cache');
-    this._res.setHeader('Connection', 'keep-alive');
-    this._res.setHeader('X-Accel-Buffering', 'no'); // Prevents Nginx from buffering the SSE
-    this._res.flushHeaders();
+    // Setup SSE headers for better browser compatibility
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no' // Prevents Nginx from buffering the response
+    });
+
+    // Start heartbeat to keep connection alive
+    this.startHeartbeat();
     
-    this._isConnected = true;
-    
-    // Send initial connection success message
-    this._sendEvent('connected', { sessionId: this._sessionId });
-    
-    logger.info(`SSE transport created: ${this._sessionId}`);
-    
-    // Handle client disconnection
-    this._res.on('close', () => {
-      this._isConnected = false;
-      logger.info(`SSE client disconnected: ${this._sessionId}`);
+    // Handle client disconnect
+    res.on('close', () => {
+      this.connected = false;
+      this.stopHeartbeat();
+      logger.debug(`SSE connection closed: ${this.sessionId}`);
     });
   }
-  
+
   /**
-   * Get the session ID
+   * Send data to the client
+   * @param data Data to send
    */
-  get sessionId(): string {
-    return this._sessionId;
-  }
-  
-  /**
-   * Send a message through the SSE connection
-   * @param message Message to send
-   */
-  async send(message: any): Promise<void> {
-    if (!this._isConnected) {
-      logger.warn(`Attempted to send message to disconnected client: ${this._sessionId}`);
+  async send(data: any): Promise<void> {
+    if (!this.connected) {
+      logger.warn(`Attempt to send to disconnected transport: ${this.sessionId}`);
       return;
     }
-    
-    this._sendEvent('message', message);
-  }
-  
-  /**
-   * Handle POST messages from client
-   * @param req Express request object
-   * @param res Express response object
-   */
-  async handlePostMessage(req: Request, res: Response): Promise<void> {
-    if (!this._messageHandler) {
-      logger.warn(`No message handler registered for SSE transport: ${this._sessionId}`);
-      res.status(500).json({ error: 'Server not ready for messages' });
-      return;
-    }
-    
+
     try {
-      await this._messageHandler(req.body);
-      res.status(200).json({ success: true });
+      const message = `data: ${JSON.stringify(data)}\n\n`;
+      const success = this.res.write(message);
+      
+      // Handle backpressure
+      if (!success) {
+        logger.warn(`Backpressure detected on SSE transport: ${this.sessionId}`);
+      }
+      
+      this.lastHeartbeat = Date.now(); // Reset heartbeat timer on successful send
+    } catch (error) {
+      this.connected = false;
+      logger.error(`Error sending SSE message: ${error instanceof Error ? error.message : String(error)}`);
+      this.attemptReconnect();
+      throw error;
+    }
+  }
+
+  /**
+   * Handle HTTP POST message from client
+   * @param req Express request
+   * @param res Express response
+   */
+  async handlePostMessage(req: express.Request, res: express.Response): Promise<void> {
+    if (!this.connected) {
+      logger.warn(`Received message for disconnected transport: ${this.sessionId}`);
+      res.status(410).json({ error: 'Transport disconnected' });
+      return;
+    }
+
+    try {
+      // Process the message based on its type
+      const { type, data } = req.body;
+      
+      // Route the message to appropriate handler based on type
+      if (type === 'ping') {
+        // Handle ping/heartbeat from client
+        this.lastHeartbeat = Date.now();
+        res.json({ type: 'pong', timestamp: Date.now() });
+      } else {
+        // For all other messages, let the client know we received it
+        res.json({ received: true, type });
+        
+        // Then emit the event to our event listener (handled by McpServer)
+        if (this.onMessage) {
+          await this.onMessage({ type, data });
+        }
+      }
     } catch (error) {
       logger.error(`Error handling POST message: ${error instanceof Error ? error.message : String(error)}`);
-      res.status(500).json({ 
-        error: 'Failed to process message',
-        details: error instanceof Error ? error.message : String(error)
-      });
+      res.status(500).json({ error: 'Error processing message' });
     }
   }
-  
+
   /**
-   * Set message handler for incoming messages
-   * @param handler Message handler function
+   * Get the path for receiving messages
    */
-  onMessage(handler: (message: any) => Promise<void>): void {
-    this._messageHandler = handler;
+  getMessagesPath(): string {
+    return `${this.messagesPath}?sessionId=${this.sessionId}`;
   }
-  
+
   /**
-   * Send an SSE event
-   * @param event Event name
-   * @param data Event data
+   * Message handler callback
    */
-  private _sendEvent(event: string, data: any): void {
-    if (!this._isConnected) {
+  onMessage: ((data: any) => Promise<void>) | null = null;
+
+  /**
+   * Start sending heartbeats to keep connection alive
+   */
+  private startHeartbeat(): void {
+    this.heartbeatInterval = setInterval(() => {
+      if (!this.connected) {
+        this.stopHeartbeat();
+        return;
+      }
+      
+      // Check if we haven't sent anything for a while
+      const now = Date.now();
+      if (now - this.lastHeartbeat > this.heartbeatIntervalMs) {
+        try {
+          // Send heartbeat
+          this.res.write(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: now })}\n\n`);
+          this.lastHeartbeat = now;
+        } catch (error) {
+          logger.error(`Heartbeat error: ${error instanceof Error ? error.message : String(error)}`);
+          this.connected = false;
+          this.stopHeartbeat();
+          this.attemptReconnect();
+        }
+      }
+    }, this.heartbeatIntervalMs);
+  }
+
+  /**
+   * Stop sending heartbeats
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+  }
+
+  /**
+   * Attempt to reconnect if connection is lost
+   */
+  private attemptReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      logger.error(`Maximum reconnect attempts reached for session: ${this.sessionId}`);
       return;
     }
+
+    this.reconnectAttempts++;
+    logger.info(`Attempting to reconnect SSE transport (${this.reconnectAttempts}/${this.maxReconnectAttempts}): ${this.sessionId}`);
     
+    // Try to reestablish connection
     try {
-      this._res.write(`event: ${event}\n`);
-      this._res.write(`data: ${JSON.stringify(data)}\n\n`);
-      
-      // Express Response에는 flush 메서드가 없으므로 생략
-      // Node.js의 기본 응답 처리가 데이터를 적절히 전송
+      this.connected = true;
+      this.res.write(`data: ${JSON.stringify({ type: 'reconnected', timestamp: Date.now() })}\n\n`);
+      this.lastHeartbeat = Date.now();
+      this.startHeartbeat();
     } catch (error) {
-      logger.error(`Error sending SSE event: ${error instanceof Error ? error.message : String(error)}`);
-      this._isConnected = false;
+      this.connected = false;
+      logger.error(`Reconnect failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-  
+
   /**
-   * Disconnect the transport
+   * Check if the transport is still connected
    */
-  async disconnect(): Promise<void> {
-    if (!this._isConnected) {
-      return;
-    }
-    
-    try {
-      // Send end event
-      this._sendEvent('disconnected', { sessionId: this._sessionId });
-      
-      // End the response
-      this._res.end();
-      this._isConnected = false;
-      
-      logger.info(`SSE transport disconnected: ${this._sessionId}`);
-    } catch (error) {
-      logger.error(`Error disconnecting SSE transport: ${error instanceof Error ? error.message : String(error)}`);
-    }
+  isConnected(): boolean {
+    return this.connected;
   }
-} 
+}
