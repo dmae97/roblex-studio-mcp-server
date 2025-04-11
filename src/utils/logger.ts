@@ -1,6 +1,14 @@
 /**
  * Simple logging utility for Roblex Studio MCP Server
  */
+import { Logger } from '../sdk';
+
+// 확장된 로거 인터페이스
+export interface ExtendedLogger extends Logger {
+    logRequest(endpoint: string, request: any): void;
+    logResponse(endpoint: string, response: any): void;
+    logMcpEvent(eventType: string, details: any): void;
+}
 
 // 로그 레벨 enum
 export enum LogLevel {
@@ -10,6 +18,7 @@ export enum LogLevel {
   ERROR = 'error'
 }
 
+<<<<<<< Updated upstream
 // 로그 레벨에 따른 우선순위 (낮을수록 더 많은 로그)
 const LOG_PRIORITIES: Record<string, number> = {
   [LogLevel.DEBUG]: 0,
@@ -198,3 +207,57 @@ export function requestLogger(req: any, res: any, next: Function): void {
   
   next();
 }
+=======
+// 로깅 유틸리티
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+
+// Helper function to get timestamp
+const getTimestamp = (): string => {
+    return new Date().toISOString();
+};
+
+// Logger implementation
+export const logger: ExtendedLogger = {
+    debug: (message: string): void => {
+        if (LOG_LEVEL === 'debug') {
+            console.log(`[${getTimestamp()}] [DEBUG] ${message}`);
+        }
+    },
+    
+    info: (message: string): void => {
+        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info') {
+            console.log(`[${getTimestamp()}] [INFO] ${message}`);
+        }
+    },
+    
+    warn: (message: string): void => {
+        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info' || LOG_LEVEL === 'warn') {
+            console.warn(`[${getTimestamp()}] [WARN] ${message}`);
+        }
+    },
+    
+    error: (message: string): void => {
+        console.error(`[${getTimestamp()}] [ERROR] ${message}`);
+    },
+    
+    // 요청과 응답을 자세히 로깅하는 함수 추가
+    logRequest: (endpoint: string, request: any): void => {
+        if (LOG_LEVEL === 'debug') {
+            console.log(`[${getTimestamp()}] [DEBUG] 수신된 요청 - ${endpoint}: ${JSON.stringify(request, null, 2)}`);
+        }
+    },
+    
+    logResponse: (endpoint: string, response: any): void => {
+        if (LOG_LEVEL === 'debug') {
+            console.log(`[${getTimestamp()}] [DEBUG] 전송된 응답 - ${endpoint}: ${JSON.stringify(response, null, 2)}`);
+        }
+    },
+    
+    // MCP 프로토콜 관련 이벤트 로깅
+    logMcpEvent: (eventType: string, details: any): void => {
+        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info') {
+            console.log(`[${getTimestamp()}] [MCP] ${eventType}: ${JSON.stringify(details, null, 2)}`);
+        }
+    }
+};
+>>>>>>> Stashed changes

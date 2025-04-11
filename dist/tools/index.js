@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.roblexTools = void 0;
+<<<<<<< Updated upstream
 const McpHelpers_js_1 = require("../server/McpHelpers.js");
 const scriptGenerator_js_1 = require("./scriptGenerator.js"); // Import the new tool
 const assetFinder_js_1 = require("./assetFinder.js");
@@ -52,8 +53,32 @@ if (scriptGenerator_js_1.scriptGenerator && typeof scriptGenerator_js_1.scriptGe
 /**
  * Registry for all Roblex Studio tools
  */
+=======
+const logger_1 = require("../utils/logger");
+// 도구 정의 예시 (TimeService)
+const timeServiceTool = {
+    name: 'get-current-time',
+    description: 'Get the current time in the configured local timezone',
+    parameters: {},
+    handler: async (_params, _context) => {
+        logger_1.logger.debug('Time service tool called');
+        return { time: new Date().toLocaleString() };
+    }
+};
+// 모든 도구 목록
+const allTools = [
+    timeServiceTool,
+    // 더 많은 도구를 여기에 추가
+];
+// 도구 등록 및 관리를 위한 객체
+>>>>>>> Stashed changes
 exports.roblexTools = {
+    /**
+     * 서버에 도구 등록
+     * @param server MCP 서버 인스턴스
+     */
     register: (server) => {
+<<<<<<< Updated upstream
         logger_js_1.logger.info('Registering Roblex Studio tools...');
         // 직접 도구 등록
         try {
@@ -118,6 +143,40 @@ exports.roblexTools = {
             logger_js_1.logger.error(`Error registering tools: ${errorMessage}`);
         }
         logger_js_1.logger.info('Roblex Studio tools registered successfully');
+=======
+        logger_1.logger.info(`${allTools.length}개의 도구 등록 중...`);
+        allTools.forEach(tool => {
+            logger_1.logger.debug(`도구 등록: ${tool.name}`);
+            server.tool(tool.name, tool.description, tool.parameters, tool.handler);
+        });
+        logger_1.logger.info('모든 도구 등록 완료');
+    },
+    /**
+     * 등록된 도구 목록 가져오기
+     * @returns 도구 정의 목록
+     */
+    getToolList: () => {
+        return allTools.map(tool => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters
+        }));
+    },
+    /**
+     * 등록된 도구 수 가져오기
+     * @returns 도구 수
+     */
+    getToolCount: () => {
+        return allTools.length;
+    },
+    /**
+     * 도구 이름으로 도구 찾기
+     * @param name 도구 이름
+     * @returns 도구 정의 또는 undefined
+     */
+    getToolByName: (name) => {
+        return allTools.find(tool => tool.name === name);
+>>>>>>> Stashed changes
     }
 };
 //# sourceMappingURL=index.js.map

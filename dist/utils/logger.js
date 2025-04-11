@@ -1,7 +1,4 @@
 "use strict";
-/**
- * Simple logging utility for Roblex Studio MCP Server
- */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.requestLogger = exports.logServerShutdown = exports.logServerStart = exports.createSessionLogger = exports.createModelLogger = exports.studioLogger = exports.logger = exports.setLogLevel = exports.LogLevel = void 0;
 // 로그 레벨 enum
@@ -12,12 +9,20 @@ var LogLevel;
     LogLevel["WARN"] = "warn";
     LogLevel["ERROR"] = "error";
 })(LogLevel || (exports.LogLevel = LogLevel = {}));
+<<<<<<< Updated upstream
 // 로그 레벨에 따른 우선순위 (낮을수록 더 많은 로그)
 const LOG_PRIORITIES = {
     [LogLevel.DEBUG]: 0,
     [LogLevel.INFO]: 1,
     [LogLevel.WARN]: 2,
     [LogLevel.ERROR]: 3
+=======
+// 로깅 유틸리티
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
+// Helper function to get timestamp
+const getTimestamp = () => {
+    return new Date().toISOString();
+>>>>>>> Stashed changes
 };
 // 환경 변수에서 로그 레벨 가져오기 (기본: INFO)
 const LOG_LEVEL = process.env.LOG_LEVEL || LogLevel.INFO;
@@ -71,6 +76,7 @@ exports.setLogLevel = setLogLevel;
  * 기본 로거
  */
 exports.logger = {
+<<<<<<< Updated upstream
     debug(message, meta) {
         log(LogLevel.DEBUG, message, meta);
     },
@@ -82,6 +88,42 @@ exports.logger = {
     },
     error(message, meta) {
         log(LogLevel.ERROR, message, meta);
+=======
+    debug: (message) => {
+        if (LOG_LEVEL === 'debug') {
+            console.log(`[${getTimestamp()}] [DEBUG] ${message}`);
+        }
+    },
+    info: (message) => {
+        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info') {
+            console.log(`[${getTimestamp()}] [INFO] ${message}`);
+        }
+    },
+    warn: (message) => {
+        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info' || LOG_LEVEL === 'warn') {
+            console.warn(`[${getTimestamp()}] [WARN] ${message}`);
+        }
+    },
+    error: (message) => {
+        console.error(`[${getTimestamp()}] [ERROR] ${message}`);
+    },
+    // 요청과 응답을 자세히 로깅하는 함수 추가
+    logRequest: (endpoint, request) => {
+        if (LOG_LEVEL === 'debug') {
+            console.log(`[${getTimestamp()}] [DEBUG] 수신된 요청 - ${endpoint}: ${JSON.stringify(request, null, 2)}`);
+        }
+    },
+    logResponse: (endpoint, response) => {
+        if (LOG_LEVEL === 'debug') {
+            console.log(`[${getTimestamp()}] [DEBUG] 전송된 응답 - ${endpoint}: ${JSON.stringify(response, null, 2)}`);
+        }
+    },
+    // MCP 프로토콜 관련 이벤트 로깅
+    logMcpEvent: (eventType, details) => {
+        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info') {
+            console.log(`[${getTimestamp()}] [MCP] ${eventType}: ${JSON.stringify(details, null, 2)}`);
+        }
+>>>>>>> Stashed changes
     }
 };
 /**

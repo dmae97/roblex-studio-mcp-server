@@ -1,12 +1,19 @@
 /**
  * Simple logging utility for Roblex Studio MCP Server
  */
+import { Logger } from '../sdk';
+export interface ExtendedLogger extends Logger {
+    logRequest(endpoint: string, request: any): void;
+    logResponse(endpoint: string, response: any): void;
+    logMcpEvent(eventType: string, details: any): void;
+}
 export declare enum LogLevel {
     DEBUG = "debug",
     INFO = "info",
     WARN = "warn",
     ERROR = "error"
 }
+<<<<<<< Updated upstream
 /**
  * 로그 레벨 변경
  * @param level 새 로그 레벨
@@ -60,3 +67,6 @@ export declare function logServerShutdown(): void;
  * API 요청 로깅을 위한 Express 미들웨어
  */
 export declare function requestLogger(req: any, res: any, next: Function): void;
+=======
+export declare const logger: ExtendedLogger;
+>>>>>>> Stashed changes

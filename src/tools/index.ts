@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { ToolRegistry } from '../server/McpHelpers.js';
 import { scriptGenerator } from './scriptGenerator.js'; // Import the new tool
@@ -137,3 +138,77 @@ export const roblexTools = {
     logger.info('Roblex Studio tools registered successfully');
   }
 };
+=======
+import { McpServer } from '../server/McpServer';
+import { logger } from '../utils/logger';
+
+// 도구 정의 인터페이스
+interface ToolDefinition {
+  name: string;
+  description: string;
+  parameters: any;
+  handler: (params: any, context?: any) => Promise<any>;
+}
+
+// 도구 정의 예시 (TimeService)
+const timeServiceTool: ToolDefinition = {
+  name: 'get-current-time',
+  description: 'Get the current time in the configured local timezone',
+  parameters: {},
+  handler: async (_params: any, _context: any) => {
+    logger.debug('Time service tool called');
+    return { time: new Date().toLocaleString() };
+  }
+};
+
+// 모든 도구 목록
+const allTools: ToolDefinition[] = [
+  timeServiceTool,
+  // 더 많은 도구를 여기에 추가
+];
+
+// 도구 등록 및 관리를 위한 객체
+export const roblexTools = {
+  /**
+   * 서버에 도구 등록
+   * @param server MCP 서버 인스턴스
+   */
+  register: (server: McpServer): void => {
+    logger.info(`${allTools.length}개의 도구 등록 중...`);
+    allTools.forEach(tool => {
+      logger.debug(`도구 등록: ${tool.name}`);
+      server.tool(tool.name, tool.description, tool.parameters, tool.handler);
+    });
+    logger.info('모든 도구 등록 완료');
+  },
+
+  /**
+   * 등록된 도구 목록 가져오기
+   * @returns 도구 정의 목록
+   */
+  getToolList: (): Array<{ name: string; description: string; parameters: any }> => {
+    return allTools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters
+    }));
+  },
+
+  /**
+   * 등록된 도구 수 가져오기
+   * @returns 도구 수
+   */
+  getToolCount: (): number => {
+    return allTools.length;
+  },
+
+  /**
+   * 도구 이름으로 도구 찾기
+   * @param name 도구 이름
+   * @returns 도구 정의 또는 undefined
+   */
+  getToolByName: (name: string): ToolDefinition | undefined => {
+    return allTools.find(tool => tool.name === name);
+  }
+};
+>>>>>>> Stashed changes
