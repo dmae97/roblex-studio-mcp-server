@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { logger } from '../utils/logger';
+import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk';
 
 /**
  * Type for a tool callback function
@@ -28,6 +29,9 @@ export interface McpServerOptions {
 /**
  * Simple MCP Server implementation
  * Handles connections, tools, and message dispatching
+ * 
+ * This is a facade that wraps the SDK McpServer to provide compatibility
+ * and our own extensions
  */
 export class McpServer extends EventEmitter {
   private _name: string;
@@ -35,6 +39,14 @@ export class McpServer extends EventEmitter {
   private _tools: Map<string, ToolCallback>;
   private _transports: Map<string, Transport>;
   private _logger: any;
+  
+  // SDK compatibility properties
+  public server: any;
+  public _registeredResources: any[] = [];
+  public _registeredResourceTemplates: any[] = [];
+  public _registeredTools: any[] = [];
+  public _registeredPrompts: any[] = [];
+  public _registeredTooltips: any[] = [];
   
   /**
    * Create a new MCP server
@@ -47,6 +59,9 @@ export class McpServer extends EventEmitter {
     this._tools = new Map();
     this._transports = new Map();
     this._logger = options.logger || console;
+    
+    // Initialize for SDK compatibility
+    this.server = {};
     
     this._logger.info(`MCP Server created: ${this._name} v${this._version}`);
   }
@@ -220,5 +235,34 @@ export class McpServer extends EventEmitter {
     }
     
     this._logger.info('All transports disconnected');
+  }
+  
+  // SDK compatibility methods
+  registerResource(resource: any): void {
+    this._registeredResources.push(resource);
+    this._logger.info(`Resource registered: ${resource.name || 'unnamed'}`);
+  }
+  
+  registerResourceTemplate(template: any): void {
+    this._registeredResourceTemplates.push(template);
+    this._logger.info(`Resource template registered: ${template.name || 'unnamed'}`);
+  }
+  
+  registerTool(tool: any): void {
+    this._registeredTools.push(tool);
+    this._logger.info(`SDK Tool registered: ${tool.name || 'unnamed'}`);
+    
+    // Also register with our system
+    this.tool(tool.name, tool.execute || (() => Promise.resolve({})));
+  }
+  
+  registerPrompt(prompt: any): void {
+    this._registeredPrompts.push(prompt);
+    this._logger.info(`Prompt registered: ${prompt.name || 'unnamed'}`);
+  }
+  
+  registerTooltip(tooltip: any): void {
+    this._registeredTooltips.push(tooltip);
+    this._logger.info(`Tooltip registered: ${tooltip.name || 'unnamed'}`);
   }
 }
