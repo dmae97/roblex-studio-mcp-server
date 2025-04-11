@@ -13,6 +13,7 @@ export class StdioServerTransport implements Transport {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private messageHandler: ((message: any) => Promise<void>) | null = null;
   private readonly heartbeatIntervalMs: number = 30000; // 30 seconds
+  private extendedOptions: Record<string, any> = {};
 
   /**
    * Create a new Stdio transport
@@ -77,6 +78,11 @@ export class StdioServerTransport implements Transport {
     }
 
     try {
+      // If this is the first server_info message, add the extended options
+      if (data.type === 'server_info' && Object.keys(this.extendedOptions).length > 0) {
+        data.data.extendedOptions = this.extendedOptions;
+      }
+
       const message = JSON.stringify(data);
       process.stdout.write(message + '\n');
       this.lastHeartbeat = Date.now();
@@ -85,6 +91,14 @@ export class StdioServerTransport implements Transport {
       logger.error(`Error sending stdout message: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
+  }
+
+  /**
+   * Set extended options to be included in the first server_info message
+   * @param options Extended options object
+   */
+  setExtendedOptions(options: Record<string, any>): void {
+    this.extendedOptions = options;
   }
 
   /**
