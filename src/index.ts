@@ -12,6 +12,7 @@ import { roblexResources } from './resources/index';
 import { roblexPrompts } from './prompts/index';
 import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './models/index';
 import * as auth from './utils/auth';
+import { security } from './utils/security';
 
 // Import our own implementations instead of from typescript-sdk
 import { McpServer } from './server/McpServer';
@@ -43,6 +44,7 @@ const REQUIRE_AUTH = process.env.REQUIRE_AUTH === 'true';
 const USE_SEQUENTIAL = process.env.USE_SEQUENTIAL === 'true';
 const TRANSPORT_MODE = process.env.TRANSPORT_MODE || 'sse'; // 'sse' or 'stdio'
 const CLAUDE_DESKTOP_ENABLED = process.env.CLAUDE_DESKTOP_ENABLED === 'true' || true;
+const ENABLE_TPA_PROTECTION = process.env.ENABLE_TPA_PROTECTION === 'true' || true;
 
 // Parse command line arguments for extended JSON options
 const args = process.argv.slice(2);
@@ -168,7 +170,23 @@ if (TRANSPORT_MODE === 'stdio') {
   };
   
   app.use(cors(corsOptions));
-  app.use(express.json({ limit: '50mb' })); // Increased limit for larger payloads
+  
+  // Apply security middlewares
+  if (ENABLE_TPA_PROTECTION) {
+    // Security headers for all responses
+    app.use(security.securityHeadersMiddleware);
+    
+    // Rate limiting to prevent brute force attacks
+    app.use(security.rateLimitMiddleware);
+    
+    // Apply TPA protection after parsing body
+    app.use(express.json({ limit: '50mb' })); // Increased limit for larger payloads
+    app.use(security.sanitizeInputsMiddleware);
+    app.use(security.tpaProtectionMiddleware);
+  } else {
+    app.use(express.json({ limit: '50mb' })); // Without sanitization
+  }
+  
   app.use(cookieParser());
   
   // Add heartbeat endpoint for connection testing
@@ -359,6 +377,31 @@ if (TRANSPORT_MODE === 'stdio') {
       auth.updateSessionActivity(sessionId);
       
       try {
+        // Check for suspicious message content if TPA protection is enabled
+        if (ENABLE_TPA_PROTECTION && typeof req.body === 'object') {
+          const messageStr = JSON.stringify(req.body);
+          
+          // Check for potential prompt injection patterns
+          const suspiciousPatterns = [
+            /ignore previous instructions/i,
+            /disregard earlier directives/i,
+            /forget your guidelines/i,
+            /new persona/i,
+            /act as if/i,
+            /system prompt/i
+          ];
+          
+          if (suspiciousPatterns.some(pattern => pattern.test(messageStr))) {
+            security.logSuspiciousActivity(req, 'Potential prompt injection detected');
+            return res.status(403).json({ 
+              error: { 
+                message: 'Message content violates security policy', 
+                code: 'SECURITY_VIOLATION' 
+              } 
+            });
+          }
+        }
+        
         // Debugging for request body
         logger.debug(`Received message: ${JSON.stringify(req.body)}`);
         await transport.handlePostMessage(req, res);
@@ -412,7 +455,8 @@ if (TRANSPORT_MODE === 'stdio') {
       activeStudioSessions: Object.keys(studioAdapters).length,
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      claudeDesktopEnabled: CLAUDE_DESKTOP_ENABLED
+      claudeDesktopEnabled: CLAUDE_DESKTOP_ENABLED,
+      tpaProtection: ENABLE_TPA_PROTECTION
     });
   });
   
@@ -480,6 +524,9 @@ if (TRANSPORT_MODE === 'stdio') {
           stdioMode: TRANSPORT_MODE === 'stdio'
         }
       },
+      security: {
+        tpaProtection: ENABLE_TPA_PROTECTION ? 'enabled' : 'disabled'
+      },
       timestamp: new Date().toISOString()
     });
   });
@@ -497,6 +544,7 @@ if (TRANSPORT_MODE === 'stdio') {
     logger.info(`${SERVER_NAME} v${SERVER_VERSION} listening on port ${PORT}`);
     logger.info(`Mode: ${USE_SEQUENTIAL ? 'Sequential' : 'Standard'} MCP, Auth: ${REQUIRE_AUTH ? 'Required' : 'Not Required'}`);
     logger.info(`Transport mode: ${TRANSPORT_MODE}, Claude Desktop support: ${CLAUDE_DESKTOP_ENABLED ? 'Enabled' : 'Disabled'}`);
+    logger.info(`TPA Attack Protection: ${ENABLE_TPA_PROTECTION ? 'Enabled' : 'Disabled'}`);
   });
   
   // Handle graceful shutdown
