@@ -10,6 +10,7 @@ The Roblex Studio MCP Server is a standalone server implementation of the [Model
 - **Sequential Processing**: Ensures stable and predictable interaction with Roblox Studio.
 - **Multiple Transport Modes**: Supports both Server-Sent Events (SSE) and standard input/output (STDIO) for versatile connectivity.
 - **Claude Integration**: Built-in support for Anthropic's Claude models.
+- **Security Features**: Protection against TPA (Third-Party API) attacks and other security vulnerabilities.
 - **Extensible Architecture**: Easy to extend with custom tools and resources.
 - **Developer-Friendly**: Simple API and comprehensive documentation make integration straightforward.
 
@@ -94,6 +95,28 @@ For Roblox Studio integration, use the following endpoints:
 - `POST /api/roblox-studio/messages/:sessionId`: Send messages to Roblox Studio
 - `POST /api/roblox-studio/disconnect/:sessionId`: Disconnect a Roblox Studio session
 
+### Security Features
+
+The server includes protection against TPA (Third-Party API) attacks and other security vulnerabilities:
+
+- **Input Sanitization**: All user inputs are sanitized to prevent injection attacks.
+- **Rate Limiting**: Prevents abuse through brute-force attacks.
+- **Origin Validation**: Verifies that requests come from allowed domains.
+- **Security Headers**: Implements secure HTTP headers to prevent common web vulnerabilities.
+- **Pattern Blocking**: Blocks requests with suspicious patterns that might indicate malicious activity.
+- **Prompt Injection Detection**: Detects and blocks attempts to manipulate the LLM through prompt injection.
+
+These security features can be configured in the `.env` file:
+
+```
+# Security Settings
+ENABLE_TPA_PROTECTION=true
+ALLOWED_DOMAINS=localhost,127.0.0.1
+SANITIZE_INPUTS=true
+BLOCK_EXTERNAL_REQUESTS=true
+SECURITY_HEADERS=true
+```
+
 ## Development
 
 ### Project Structure
@@ -116,6 +139,7 @@ roblex-studio-mcp-server/
 
 ### Available Scripts
 
+- `npm run clean`: Clean the build directory
 - `npm run build`: Build the project
 - `npm run dev`: Run the server in development mode
 - `npm run test`: Run tests
@@ -157,6 +181,14 @@ import { MyModule } from './path/to/module';
 import { MyModule } from './path/to/module.js';
 ```
 
+### TPA Attack Protection Issues
+
+If you're experiencing issues with the TPA attack protection:
+
+1. Check that the domains you're using are added to the `ALLOWED_DOMAINS` list in your `.env` file.
+2. If you need to temporarily disable TPA protection for debugging, set `ENABLE_TPA_PROTECTION=false` in your `.env` file.
+3. If you're using legitimate external APIs that are being blocked, you can modify the blocked patterns in `src/utils/security.ts`.
+
 ## Environment Variables
 
 The server can be configured using the following environment variables:
@@ -170,6 +202,9 @@ The server can be configured using the following environment variables:
 - `TOKEN_EXPIRATION`: Token expiration time in seconds
 - `SESSION_TIMEOUT`: Session timeout in seconds
 - `SEQUENTIAL_CONCURRENCY`: Number of concurrent requests for sequential mode (default: 1)
+- `ENABLE_TPA_PROTECTION`: Enable protection against TPA attacks (default: true)
+- `ALLOWED_DOMAINS`: Comma-separated list of allowed domains for requests
+- `CLAUDE_DESKTOP_ENABLED`: Enable Claude Desktop integration (default: true)
 
 ## Contributing
 
