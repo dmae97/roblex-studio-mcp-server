@@ -13,6 +13,9 @@ A Model-Context-Protocol (MCP) server implementation for Roblox Studio with enha
   - [Queue Management](#queue-management)
   - [Concurrency Control](#concurrency-control)
 - [Claude Desktop Integration](#claude-desktop-integration)
+  - [Transport Modes (SSE/Stdio)](#transport-modes)
+  - [Extended JSON Parameters](#extended-json-parameters)
+  - [Connecting with Claude Desktop](#connecting-with-claude-desktop)
 - [API Reference](#api-reference)
 - [Examples](#examples)
 - [Development](#development)
@@ -39,9 +42,10 @@ Roblox Studio MCP Server enhances your Roblox game development workflow by enabl
   - Dynamic concurrency control
   - Error resilience and recovery
 - **Standard MCP Server**: Traditional MCP server implementation for handling tool calls
-- **Server-Sent Events (SSE) Transport**: Real-time communication between clients and server
+- **Multiple Transport Modes**: Both Server-Sent Events (SSE) and Standard I/O (Stdio) for communication
 - **Roblox Studio Integration**: Specialized tools and models for Roblox Studio
 - **Claude Desktop Integration**: Connect Claude Desktop to enhance your workflow
+- **Extended JSON Parameters**: Customizable options for Claude models and server behavior
 - **Authentication**: API key and session-based authentication
 - **Extensible Architecture**: Easy to add new tools, resources, and models
 
@@ -79,20 +83,80 @@ Dynamic Concurrency Control allows adjusting the processing capacity based on se
 
 The server now includes enhanced support for Claude Desktop, enabling advanced AI assistance for your development workflow:
 
+- **Multiple Transport Modes**: Both Server-Sent Events (SSE) and Standard I/O (Stdio) connections
 - **Reliable SSE Connections**: Improved Server-Sent Events transport with heartbeat mechanism
+- **Efficient Stdio Option**: Direct standard input/output mode for Desktop apps
+- **Extended JSON Parameters**: Customizable options for Claude models and behavior
 - **Automatic Reconnection**: Connection recovery features for robust operation
 - **Specialized Endpoints**: Dedicated endpoints for Claude Desktop communication
 - **Enhanced Error Handling**: Better error recovery and logging for connection issues
 - **Simple Authentication**: Streamlined authentication process for Claude Desktop
 
-### Connecting Claude Desktop
+### Transport Modes
+
+The server supports two transport modes for communication with Claude Desktop:
+
+1. **Server-Sent Events (SSE)** - Default mode for web-based connections
+   - Real-time bidirectional communication over HTTP
+   - Compatible with browser-based clients
+   - Maintains persistent connections with heartbeats
+   - Better for network-based connections
+
+2. **Standard I/O (Stdio)** - New mode for desktop application integration
+   - Direct process input/output for efficient local communication
+   - Lower latency for Claude Desktop on the same machine
+   - No networking overhead or connection limits
+   - Better for secure local desktop integration
+
+Switch between modes using the `TRANSPORT_MODE` environment variable or start scripts:
+
+```bash
+# Start server in SSE mode (default)
+npm run start:sse
+
+# Start server in Stdio mode
+npm run start:stdio
+
+# Connect to Claude Desktop with extended parameters
+npm run claude:desktop
+```
+
+### Extended JSON Parameters
+
+The server now supports extended JSON parameters for Claude Desktop integration. These parameters can be passed as command-line arguments or query parameters to customize the behavior of the server and Claude models:
+
+| Parameter | Description | Example Value |
+|-----------|-------------|---------------|
+| `model` | Claude model to use | `claude-3-7-sonnet` |
+| `context_length` | Maximum context window size | `200000` |
+| `max_tokens` | Maximum generated tokens | `4096` |
+| `temperature` | Response randomness | `0.7` |
+| `top_p` | Nucleus sampling parameter | `0.9` |
+| `top_k` | Top-k sampling parameter | `50` |
+| `custom_instructions` | Custom Claude instructions | `Prioritize code examples` |
+
+These parameters are included in the initial connection message to Claude Desktop and help configure the AI assistant's behavior for optimal integration with your development workflow.
+
+### Connecting with Claude Desktop
 
 To connect Claude Desktop to your MCP server:
 
-1. Ensure the server is running with Claude Desktop integration enabled (`ENABLE_CLAUDE_DESKTOP=true` in `.env`)
+#### SSE Mode (Web-based)
+
+1. Ensure the server is running in SSE mode: `npm run start:sse`
 2. In Claude Desktop, point the connection to `http://localhost:3001/claude/connect`
 3. For SSE streaming, use the endpoint `http://localhost:3001/sse`
 4. For message posting, use `http://localhost:3001/messages?sessionId=YOUR_SESSION_ID`
+5. Add custom parameters as query parameters: `?model=claude-3-7-sonnet&context_length=200000`
+
+#### Stdio Mode (Direct Desktop Integration)
+
+1. Start the server in Stdio mode with your desired parameters:
+   ```
+   npm run claude:desktop -- --model claude-3-7-sonnet --context_length 200000 --max_tokens 4096
+   ```
+2. Claude Desktop will automatically connect through the standard input/output streams
+3. No URLs or network configuration needed
 
 ## Getting Started
 
@@ -164,7 +228,8 @@ To connect Claude Desktop to your MCP server:
 | `USE_SEQUENTIAL` | Use Sequential MCP (`true`/`false`) | `false` |
 | `SEQUENTIAL_CONCURRENCY` | Number of concurrent tasks | `1` |
 | `PRIORITY_THRESHOLD` | Threshold for high-priority tasks | `5` |
-| `ENABLE_CLAUDE_DESKTOP` | Enable Claude Desktop integration | `true` |
+| `TRANSPORT_MODE` | Transport mode (`sse` or `stdio`) | `sse` |
+| `CLAUDE_DESKTOP_ENABLED` | Enable Claude Desktop integration | `true` |
 | `CLAUDE_HEARTBEAT_INTERVAL` | Interval for SSE heartbeats (ms) | `30000` |
 | `CLAUDE_MAX_RECONNECT_ATTEMPTS` | Max reconnection attempts | `5` |
 
@@ -248,15 +313,20 @@ eventSource.addEventListener('endpoint', (event) => {
 });
 ```
 
-### Using Claude Desktop for AI-Assisted Development
+### Using Claude Desktop with SSE Mode
 
 ```javascript
-// Establish connection to Claude Desktop
+// Establish connection to Claude Desktop with SSE transport
 fetch('http://localhost:3001/claude/connect', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    clientName: 'MyDevelopmentTool'
+    clientName: 'MyDevelopmentTool',
+    options: {
+      model: 'claude-3-7-sonnet',
+      context_length: 200000,
+      max_tokens: 4096
+    }
   })
 })
 .then(response => response.json())
@@ -293,6 +363,13 @@ fetch('http://localhost:3001/claude/connect', {
   // Example query
   askClaude('Help me design a leaderboard system for my Roblox game');
 });
+```
+
+### Using Claude Desktop with Stdio Mode
+
+```bash
+# Start the server with Stdio transport and extended parameters
+npm run claude:desktop -- --model claude-3-7-sonnet --context_length 200000 --custom_instructions "You are a Roblox development assistant"
 ```
 
 ### Using Priority Queue for Critical Operations
@@ -352,8 +429,9 @@ roblex-studio-mcp-server/
 │   │   └── types.ts         # Common interfaces for models
 │   ├── server/              # Server implementations
 │   │   ├── McpServer.ts     # Base MCP server
+│   │   ├── SSEServerTransport.ts  # SSE transport
+│   │   ├── StdioServerTransport.ts # Stdio transport for desktop
 │   │   └── SequentialMcpServer.ts # Enhanced Sequential MCP
-│   │   └── SSEServerTransport.ts  # SSE transport with Claude support
 │   ├── tools/               # MCP tools
 │   ├── utils/               # Utilities
 │   ├── plugins/             # Roblox Studio plugins
@@ -425,6 +503,12 @@ Start production server:
 npm start
 ```
 
+Start with Stdio mode for Claude Desktop:
+
+```
+npm run claude:desktop
+```
+
 Test Sequential MCP functionality:
 
 ```
@@ -440,11 +524,17 @@ npm run test:sequential
 - **Model creation failures**: Validate request format and check server logs
 - **Sequential processing issues**: Ensure `USE_SEQUENTIAL=true` in .env
 
-### Sequential MCP Specific Issues
+### Transport Mode Issues
 
-- **Tasks not executing in priority order**: Ensure priorities are set correctly
-- **Concurrency not taking effect**: Check if concurrency was updated after server start
-- **Queue statistics showing incorrect values**: Restart the server to reset statistics
+- **SSE mode not working**: Check network connectivity and firewall settings
+- **Stdio mode not connecting**: Ensure process has stdin/stdout access
+- **Cannot switch modes**: Set `TRANSPORT_MODE` in .env or use appropriate start script
+
+### Extended JSON Parameters Issues
+
+- **Parameters not being applied**: Ensure they're passed correctly in CLI or query params
+- **Invalid parameter values**: Check parameter format and acceptable ranges
+- **Parameters not appearing in logs**: Enable debug logging to see parameter processing
 
 ### Claude Desktop Connection Issues
 
