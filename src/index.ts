@@ -73,14 +73,27 @@ roblexPrompts.register(server);
 // Create Express app
 const app = express();
 
-// Configure CORS
+// Enhanced CORS configuration to support Claude Desktop
 const corsOptions = {
-  origin: process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : '*',
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow all origins (necessary for desktop applications)
+    callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
+
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' })); // Increased limit for larger payloads
 app.use(cookieParser());
+
+// Add heartbeat endpoint for connection testing
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
 
 // Create HTTP server from Express app
 const httpServer = http.createServer(app);
@@ -172,42 +185,59 @@ app.post('/auth/logout', (req, res) => {
   return res.status(400).json({ error: 'No active session' });
 });
 
-// SSE endpoint
+// SSE endpoint with improved error handling for Claude Desktop
 app.get('/sse', authMiddleware, async (req, res) => {
-  const transport = new SSEServerTransport('/messages', res);
-  const sessionId = req.query.sessionId as string || transport.sessionId;
-  
-  transports[sessionId] = transport;
-  
-  // Create a new Roblox Studio adapter for this session
-  const adapter = roblexStudioAdapterFactory(sessionId);
-  studioAdapters[sessionId] = adapter;
-  adapter.connect();
-  
-  // Register the session if it's not already registered
-  if (!auth.isSessionValid(sessionId)) {
-    const userId = (req as any).apiKey?.name || 'anonymous';
-    const role = (req as any).apiKey?.role || 'user';
-    auth.registerSession(sessionId, userId, role, req.ip || 'unknown');
-  } else {
-    auth.updateSessionActivity(sessionId);
-  }
-  
-  logger.info(`New SSE connection established: ${sessionId}`);
-  
-  res.on('close', () => {
-    logger.info(`SSE connection closed: ${sessionId}`);
+  try {
+    const transport = new SSEServerTransport('/messages', res);
+    const sessionId = req.query.sessionId as string || transport.sessionId;
     
-    // Disconnect the Roblox Studio adapter
-    if (studioAdapters[sessionId]) {
-      studioAdapters[sessionId].disconnect();
-      delete studioAdapters[sessionId];
+    // Set headers for better SSE stability
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    
+    transports[sessionId] = transport;
+    
+    // Create a new Roblox Studio adapter for this session
+    const adapter = roblexStudioAdapterFactory(sessionId);
+    studioAdapters[sessionId] = adapter;
+    adapter.connect();
+    
+    // Register the session if it's not already registered
+    if (!auth.isSessionValid(sessionId)) {
+      const userId = (req as any).apiKey?.name || 'anonymous';
+      const role = (req as any).apiKey?.role || 'user';
+      auth.registerSession(sessionId, userId, role, req.ip || 'unknown');
+    } else {
+      auth.updateSessionActivity(sessionId);
     }
     
-    delete transports[sessionId];
-  });
-  
-  await server.connect(transport);
+    logger.info(`New SSE connection established: ${sessionId}`);
+    
+    // Send initial confirmation message
+    res.write(`data: ${JSON.stringify({
+      type: 'connection_established',
+      sessionId: sessionId,
+      message: 'SSE Connection established successfully'
+    })}\n\n`);
+    
+    res.on('close', () => {
+      logger.info(`SSE connection closed: ${sessionId}`);
+      
+      // Disconnect the Roblox Studio adapter
+      if (studioAdapters[sessionId]) {
+        studioAdapters[sessionId].disconnect();
+        delete studioAdapters[sessionId];
+      }
+      
+      delete transports[sessionId];
+    });
+    
+    await server.connect(transport);
+  } catch (error) {
+    logger.error(`SSE connection error: ${error instanceof Error ? error.message : String(error)}`);
+    res.status(500).end();
+  }
 });
 
 // If using Sequential MCP, create and register the RoblexStudioService
@@ -225,7 +255,7 @@ if (USE_SEQUENTIAL) {
   logger.info(`RoblexStudioService registered on prefix: /api/roblox-studio`);
 }
 
-// Messages endpoint
+// Messages endpoint with improved error handling
 app.post('/messages', authMiddleware, async (req, res) => {
   const sessionId = req.query.sessionId as string;
   const transport = transports[sessionId];
@@ -276,7 +306,7 @@ app.post('/studio/api', authMiddleware, async (req, res) => {
   }
 });
 
-// Health check endpoint
+// Enhanced health check endpoint with additional connection info
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
@@ -284,7 +314,10 @@ app.get('/health', (req, res) => {
     version: SERVER_VERSION,
     type: USE_SEQUENTIAL ? 'sequential' : 'standard',
     activeSessions: Object.keys(transports).length,
-    activeStudioSessions: Object.keys(studioAdapters).length
+    activeStudioSessions: Object.keys(studioAdapters).length,
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    claudeDesktopEnabled: true
   });
 });
 
@@ -299,6 +332,28 @@ app.get('/studio/status', authMiddleware, (req, res) => {
   });
 });
 
+// New endpoint for Claude Desktop connection testing
+app.post('/claude/connect', (req, res) => {
+  try {
+    const sessionId = auth.generateSessionId('claude');
+    logger.info(`Claude Desktop connection request: ${sessionId}`);
+    
+    auth.registerSession(sessionId, 'claude-desktop', 'user', req.ip || 'unknown');
+    
+    return res.status(200).json({ 
+      success: true,
+      sessionId,
+      message: 'Claude Desktop connection established'
+    });
+  } catch (error) {
+    logger.error(`Claude Desktop connection error: ${error instanceof Error ? error.message : String(error)}`);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Failed to establish Claude Desktop connection'
+    });
+  }
+});
+
 // Add error handler middleware
 app.use(errorHandlerMiddleware);
 
@@ -311,6 +366,7 @@ app.use((req, res, next) => {
 httpServer.listen(PORT, () => {
   logger.info(`${SERVER_NAME} v${SERVER_VERSION} listening on port ${PORT}`);
   logger.info(`Mode: ${USE_SEQUENTIAL ? 'Sequential' : 'Standard'} MCP, Auth: ${REQUIRE_AUTH ? 'Required' : 'Not Required'}`);
+  logger.info(`Claude Desktop integration enabled`);
 });
 
 // Handle graceful shutdown
