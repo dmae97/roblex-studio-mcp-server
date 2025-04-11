@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 import { McpServer as SdkMcpServer } from '@modelcontextprotocol/sdk';
 
 /**
@@ -33,7 +33,7 @@ export interface McpServerOptions {
  * This is a facade that wraps the SDK McpServer to provide compatibility
  * and our own extensions
  */
-export class McpServer extends EventEmitter {
+export class McpServer extends EventEmitter implements SdkMcpServer {
   private _name: string;
   private _version: string;
   private _tools: Map<string, ToolCallback>;
