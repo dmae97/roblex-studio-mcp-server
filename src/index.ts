@@ -3,7 +3,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import http from 'http';
-import { logger } from './utils/logger.js';
+import { logger } from './utils/logger';
 import { apiKeyAuth } from './utils/auth';
 import * as sync from './utils/sync';
 import { errorHandlerMiddleware, NotFoundError } from './utils/errorHandler';
@@ -14,9 +14,9 @@ import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './mod
 import * as auth from './utils/auth';
 
 // Import our own implementations instead of from typescript-sdk
-import { McpServer } from './server/McpServer.js';
-import { SSEServerTransport } from './server/SSEServerTransport.js';
-import { StdioServerTransport } from './server/StdioServerTransport.js';
+import { McpServer } from './server/McpServer';
+import { SSEServerTransport } from './server/SSEServerTransport';
+import { StdioServerTransport } from './server/StdioServerTransport';
 
 // New imports for Sequential MCP
 import { 
