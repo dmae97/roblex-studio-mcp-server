@@ -529,6 +529,8 @@ if (TRANSPORT_MODE === 'stdio') {
   process.on('SIGTERM', gracefulShutdown);
   process.on('SIGINT', gracefulShutdown);
   
-  // Export the app and server for testing
-  export { app, server, httpServer };
+  // Export the app and server for testing (using CommonJS exports instead of ES modules)
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { app, server, httpServer };
+  }
 }
