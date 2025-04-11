@@ -73,7 +73,7 @@ roblexPrompts.register(server);
 // Create Express app
 const app = express();
 
-// Enhanced CORS configuration to support Claude Desktop
+// Enhanced CORS configuration to support desktop applications
 const corsOptions = {
   origin: function(origin, callback) {
     // Allow all origins (necessary for desktop applications)
@@ -352,6 +352,31 @@ app.post('/claude/connect', (req, res) => {
       error: 'Failed to establish Claude Desktop connection'
     });
   }
+});
+
+// Root path handler for Claude Desktop connection
+app.get('/', (req, res) => {
+  res.status(200).json({
+    name: SERVER_NAME,
+    version: SERVER_VERSION,
+    description: 'Roblox Studio MCP Server with Claude Desktop integration',
+    status: 'running',
+    docs: {
+      endpoints: [
+        { path: '/ping', method: 'GET', description: 'Simple heartbeat endpoint' },
+        { path: '/health', method: 'GET', description: 'Server health and status information' },
+        { path: '/sse', method: 'GET', description: 'SSE connection endpoint' },
+        { path: '/messages', method: 'POST', description: 'Send messages to the server' },
+        { path: '/claude/connect', method: 'POST', description: 'Connect to Claude Desktop' }
+      ],
+      claudeDesktop: {
+        connectionUrl: '/claude/connect',
+        sseUrl: '/sse',
+        messageUrl: '/messages?sessionId=YOUR_SESSION_ID'
+      }
+    },
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Add error handler middleware
