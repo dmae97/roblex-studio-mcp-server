@@ -4,8 +4,8 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { logger } from './logger';
-import { RateLimitError } from './errorHandler';
+import { logger } from './logger.js';
+import { RateLimitError } from './errorHandler.js';
 
 // Allowed domains for API requests (CORS protection)
 const ALLOWED_DOMAINS: string[] = [
@@ -131,20 +131,23 @@ export function rateLimitMiddleware(req: Request, res: Response, next: NextFunct
 
 /**
  * Middleware to protect against TPA attacks by validating requests
+ * 반환 타입을 void로 수정
  */
 export function tpaProtectionMiddleware(req: Request, res: Response, next: NextFunction): void {
   // Check request origin
   const origin = req.headers.origin || '';
   if (origin && !isAllowedOrigin(origin)) {
     logger.warn(`Blocked request from unauthorized origin: ${origin}`);
-    return res.status(403).json({ error: 'Unauthorized request origin' });
+    res.status(403).json({ error: 'Unauthorized request origin' });
+    return;
   }
 
   // Check request URL for suspicious patterns
   const url = req.originalUrl || req.url;
   if (containsBlockedPattern(url)) {
     logger.warn(`Blocked request with suspicious URL pattern: ${url}`);
-    return res.status(403).json({ error: 'Unauthorized request URL' });
+    res.status(403).json({ error: 'Unauthorized request URL' });
+    return;
   }
 
   // Check request body for suspicious patterns
@@ -152,7 +155,8 @@ export function tpaProtectionMiddleware(req: Request, res: Response, next: NextF
     const bodyString = JSON.stringify(req.body);
     if (containsBlockedPattern(bodyString)) {
       logger.warn(`Blocked request with suspicious payload`);
-      return res.status(403).json({ error: 'Unauthorized request content' });
+      res.status(403).json({ error: 'Unauthorized request content' });
+      return;
     }
   }
 
@@ -161,7 +165,8 @@ export function tpaProtectionMiddleware(req: Request, res: Response, next: NextF
   for (const param of queryParams) {
     if (SUSPICIOUS_PARAMS.includes(param.toLowerCase())) {
       logger.warn(`Blocked request with suspicious query parameter: ${param}`);
-      return res.status(403).json({ error: 'Unauthorized query parameters' });
+      res.status(403).json({ error: 'Unauthorized query parameters' });
+      return;
     }
   }
 
