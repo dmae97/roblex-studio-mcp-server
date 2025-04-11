@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { RoblexStudioService } from '../server/RoblexStudioService.js';
-import { logger } from '../utils/logger.js';
+import { RoblexStudioService } from '../server/RoblexStudioService';
+import { logger } from '../utils/logger';
 
 // Load environment variables
 dotenv.config();
@@ -151,7 +151,7 @@ app.get('/', (req, res) => {
             eventSource.addEventListener('connected', (event) => {
               const data = JSON.parse(event.data);
               sessionId = data.sessionId;
-              log(`Connected with session ID: ${sessionId}`);
+              log("Connected with session ID: " + sessionId);
               
               document.getElementById('connect').style.display = 'none';
               document.getElementById('disconnect').style.display = 'inline-block';
@@ -160,7 +160,7 @@ app.get('/', (req, res) => {
             
             eventSource.addEventListener('message', (event) => {
               const data = JSON.parse(event.data);
-              log(`Received: ${JSON.stringify(data)}`);
+              log("Received: " + JSON.stringify(data));
             });
             
             eventSource.addEventListener('disconnected', (event) => {
@@ -183,13 +183,13 @@ app.get('/', (req, res) => {
             }
             
             try {
-              const response = await fetch(`/api/roblox-studio/disconnect/${sessionId}`, {
+              const response = await fetch("/api/roblox-studio/disconnect/" + sessionId, {
                 method: 'POST'
               });
               const data = await response.json();
-              log(`Disconnect response: ${JSON.stringify(data)}`);
+              log("Disconnect response: " + JSON.stringify(data));
             } catch (error) {
-              log(`Error: ${error.message}`);
+              log("Error: " + error.message);
             }
             
             closeConnection();
@@ -230,10 +230,10 @@ app.get('/', (req, res) => {
               return;
             }
             
-            log(`Calling tool: ${toolName}`);
+            log("Calling tool: " + toolName);
             
             try {
-              const response = await fetch(`/api/roblox-studio/messages/${sessionId}`, {
+              const response = await fetch("/api/roblox-studio/messages/" + sessionId, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -248,9 +248,9 @@ app.get('/', (req, res) => {
               });
               
               const data = await response.json();
-              log(`Response: ${JSON.stringify(data)}`);
+              log("Response: " + JSON.stringify(data));
             } catch (error) {
-              log(`Error: ${error.message}`);
+              log("Error: " + error.message);
             }
           }
           
@@ -278,4 +278,4 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(port, () => {
   logger.info(`Roblox Studio Sequential MCP server listening on port ${port}`);
-}); 
+});
