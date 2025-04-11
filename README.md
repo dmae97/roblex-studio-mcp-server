@@ -1,6 +1,6 @@
 # Roblox Studio MCP Server
 
-A Model-Context-Protocol (MCP) server implementation for Roblox Studio with enhanced Sequential MCP execution support.
+A Model-Context-Protocol (MCP) server implementation for Roblox Studio with enhanced Sequential MCP execution support and Claude Desktop integration.
 
 ## Table of Contents
 
@@ -12,6 +12,7 @@ A Model-Context-Protocol (MCP) server implementation for Roblox Studio with enha
   - [Priority Queue](#priority-queue)
   - [Queue Management](#queue-management)
   - [Concurrency Control](#concurrency-control)
+- [Claude Desktop Integration](#claude-desktop-integration)
 - [API Reference](#api-reference)
 - [Examples](#examples)
 - [Development](#development)
@@ -28,6 +29,7 @@ Roblox Studio MCP Server enhances your Roblox game development workflow by enabl
 - Real-time game data monitoring and manipulation
 - Workflow automation for game development
 - Sequential execution of interdependent operations
+- Claude Desktop AI integration for advanced assistance
 
 ## Features
 
@@ -39,6 +41,7 @@ Roblox Studio MCP Server enhances your Roblox game development workflow by enabl
 - **Standard MCP Server**: Traditional MCP server implementation for handling tool calls
 - **Server-Sent Events (SSE) Transport**: Real-time communication between clients and server
 - **Roblox Studio Integration**: Specialized tools and models for Roblox Studio
+- **Claude Desktop Integration**: Connect Claude Desktop to enhance your workflow
 - **Authentication**: API key and session-based authentication
 - **Extensible Architecture**: Easy to add new tools, resources, and models
 
@@ -72,6 +75,25 @@ Dynamic Concurrency Control allows adjusting the processing capacity based on se
 - Runtime adjustment through API without server restart
 - Automatic scaling of processing based on configured concurrency
 
+## Claude Desktop Integration
+
+The server now includes enhanced support for Claude Desktop, enabling advanced AI assistance for your development workflow:
+
+- **Reliable SSE Connections**: Improved Server-Sent Events transport with heartbeat mechanism
+- **Automatic Reconnection**: Connection recovery features for robust operation
+- **Specialized Endpoints**: Dedicated endpoints for Claude Desktop communication
+- **Enhanced Error Handling**: Better error recovery and logging for connection issues
+- **Simple Authentication**: Streamlined authentication process for Claude Desktop
+
+### Connecting Claude Desktop
+
+To connect Claude Desktop to your MCP server:
+
+1. Ensure the server is running with Claude Desktop integration enabled (`ENABLE_CLAUDE_DESKTOP=true` in `.env`)
+2. In Claude Desktop, point the connection to `http://localhost:3001/claude/connect`
+3. For SSE streaming, use the endpoint `http://localhost:3001/sse`
+4. For message posting, use `http://localhost:3001/messages?sessionId=YOUR_SESSION_ID`
+
 ## Getting Started
 
 ### Requirements
@@ -80,6 +102,7 @@ Dynamic Concurrency Control allows adjusting the processing capacity based on se
 - npm or Yarn
 - TypeScript 5.x
 - Roblox Studio
+- Claude Desktop (optional)
 
 ### Installation
 
@@ -131,7 +154,7 @@ Dynamic Concurrency Control allows adjusting the processing capacity based on se
 ### Environment Variables
 
 | Variable | Description | Default |
-|----------|-------------|---------|
+|----------|-------------|---------| 
 | `PORT` | Server port | `3001` |
 | `LOG_LEVEL` | Logging level (`debug`, `info`, `warn`, `error`) | `info` |
 | `API_KEYS` | Comma-separated list of API keys | - |
@@ -141,6 +164,9 @@ Dynamic Concurrency Control allows adjusting the processing capacity based on se
 | `USE_SEQUENTIAL` | Use Sequential MCP (`true`/`false`) | `false` |
 | `SEQUENTIAL_CONCURRENCY` | Number of concurrent tasks | `1` |
 | `PRIORITY_THRESHOLD` | Threshold for high-priority tasks | `5` |
+| `ENABLE_CLAUDE_DESKTOP` | Enable Claude Desktop integration | `true` |
+| `CLAUDE_HEARTBEAT_INTERVAL` | Interval for SSE heartbeats (ms) | `30000` |
+| `CLAUDE_MAX_RECONNECT_ATTEMPTS` | Max reconnection attempts | `5` |
 
 ### Config files
 
@@ -149,6 +175,13 @@ Dynamic Concurrency Control allows adjusting the processing capacity based on se
 - `config/production.json`: production overrides
 
 ## API Reference
+
+### Claude Desktop API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/claude/connect` | POST | Establish Claude Desktop connection |
+| `/ping` | GET | Heartbeat endpoint for connection testing |
 
 ### Sequential MCP API Endpoints
 
@@ -215,6 +248,53 @@ eventSource.addEventListener('endpoint', (event) => {
 });
 ```
 
+### Using Claude Desktop for AI-Assisted Development
+
+```javascript
+// Establish connection to Claude Desktop
+fetch('http://localhost:3001/claude/connect', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    clientName: 'MyDevelopmentTool'
+  })
+})
+.then(response => response.json())
+.then(result => {
+  const sessionId = result.sessionId;
+  
+  // Create event source for real-time updates
+  const eventSource = new EventSource(`http://localhost:3001/sse?sessionId=${sessionId}`);
+  
+  // Listen for Claude's responses
+  eventSource.addEventListener('message', (event) => {
+    const data = JSON.parse(event.data);
+    console.log('Received from Claude:', data);
+    
+    // Process response from Claude
+    if (data.type === 'claude_response') {
+      // Use Claude's response in your application
+      processClaudeResponse(data.content);
+    }
+  });
+  
+  // Send a query to Claude
+  function askClaude(query) {
+    fetch(`http://localhost:3001/messages?sessionId=${sessionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'claude_query',
+        data: { query }
+      })
+    });
+  }
+  
+  // Example query
+  askClaude('Help me design a leaderboard system for my Roblox game');
+});
+```
+
 ### Using Priority Queue for Critical Operations
 
 ```javascript
@@ -273,6 +353,7 @@ roblex-studio-mcp-server/
 │   ├── server/              # Server implementations
 │   │   ├── McpServer.ts     # Base MCP server
 │   │   └── SequentialMcpServer.ts # Enhanced Sequential MCP
+│   │   └── SSEServerTransport.ts  # SSE transport with Claude support
 │   ├── tools/               # MCP tools
 │   ├── utils/               # Utilities
 │   ├── plugins/             # Roblox Studio plugins
@@ -364,6 +445,13 @@ npm run test:sequential
 - **Tasks not executing in priority order**: Ensure priorities are set correctly
 - **Concurrency not taking effect**: Check if concurrency was updated after server start
 - **Queue statistics showing incorrect values**: Restart the server to reset statistics
+
+### Claude Desktop Connection Issues
+
+- **Failed to connect**: Ensure the server is running and the correct URL is used
+- **SSE connection drops**: Check for network issues and firewall settings
+- **No response from Claude**: Verify the session ID is being correctly passed in requests
+- **Heartbeat failures**: Check server logs for connection issues
 
 Logs are saved in `logs/`:
 - `combined.log`: all logs
