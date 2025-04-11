@@ -1,8 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import { McpServerFactory } from '../server/McpServerFactory.js';
-import { RoblexStudioService } from '../server/RoblexStudioService.js';
-import { logger } from '../utils/logger.js';
+import { McpServerFactory } from '../server/McpServerFactory';
+import { RoblexStudioService } from '../server/RoblexStudioService';
+import { logger } from '../utils/logger';
 
 // 간단한 타입 정의로 기존 타입 에러 회피
 type LoggerType = {
@@ -98,7 +98,7 @@ app.get('/', (req, res) => {
         function log(message) {
           const timestamp = new Date().toLocaleTimeString();
           const line = document.createElement('div');
-          line.textContent = `[${timestamp}] ${message}`;
+          line.textContent = "[" + timestamp + "] " + message;
           outputDiv.appendChild(line);
           outputDiv.scrollTop = outputDiv.scrollHeight;
         }
@@ -124,14 +124,14 @@ app.get('/', (req, res) => {
           eventSource.addEventListener('connected', (event) => {
             const data = JSON.parse(event.data);
             sessionId = data.sessionId;
-            log(`연결 성공! 세션 ID: ${sessionId}`);
+            log("연결 성공! 세션 ID: " + sessionId);
             updateButtonStates(true);
           });
           
           // 메시지 이벤트
           eventSource.addEventListener('message', (event) => {
             const data = JSON.parse(event.data);
-            log(`받은 메시지: ${JSON.stringify(data)}`);
+            log("받은 메시지: " + JSON.stringify(data));
           });
           
           // 연결 해제 이벤트
@@ -156,14 +156,14 @@ app.get('/', (req, res) => {
           
           try {
             log('연결 해제 요청 중...');
-            const response = await fetch(`/api/roblox-studio/disconnect/${sessionId}`, {
+            const response = await fetch("/api/roblox-studio/disconnect/" + sessionId, {
               method: 'POST'
             });
             
             const data = await response.json();
-            log(`연결 해제 응답: ${JSON.stringify(data)}`);
+            log("연결 해제 응답: " + JSON.stringify(data));
           } catch (error) {
-            log(`오류: ${error.message}`);
+            log("오류: " + error.message);
           }
           
           closeConnection();
@@ -176,10 +176,10 @@ app.get('/', (req, res) => {
             return;
           }
           
-          log(`도구 호출: ${toolName}`);
+          log("도구 호출: " + toolName);
           
           try {
-            const response = await fetch(`/api/roblox-studio/messages/${sessionId}`, {
+            const response = await fetch("/api/roblox-studio/messages/" + sessionId, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -194,10 +194,10 @@ app.get('/', (req, res) => {
             });
             
             const data = await response.json();
-            log(`응답: ${JSON.stringify(data)}`);
+            log("응답: " + JSON.stringify(data));
             return data;
           } catch (error) {
-            log(`오류: ${error.message}`);
+            log("오류: " + error.message);
             return null;
           }
         }
@@ -222,7 +222,7 @@ app.get('/', (req, res) => {
         // Luau 코드 실행
         runCodeBtn.addEventListener('click', () => {
           callTool('RunLuauCode', {
-            code: 'print("Hello from Luau!")\nreturn "테스트 성공"'
+            code: 'print("Hello from Luau!")\\nreturn "테스트 성공"'
           });
         });
         
@@ -239,7 +239,7 @@ app.get('/', (req, res) => {
             parentId: 'ServerScriptService',
             name: 'TestScript' + Math.floor(Math.random() * 1000),
             scriptType: 'Script',
-            content: '-- 테스트 스크립트\nprint("안녕하세요!")'
+            content: '-- 테스트 스크립트\\nprint("안녕하세요!")'
           });
         });
         
@@ -255,4 +255,4 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   customLogger.info(`서버가 포트 ${PORT}에서 시작되었습니다.`);
   customLogger.info(`웹 브라우저에서 http://localhost:${PORT}/ 를 여세요.`);
-}); 
+});

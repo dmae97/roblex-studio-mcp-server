@@ -1,8 +1,8 @@
-// Export all server components
-export * from './McpServer.js';
-export * from './McpHelpers.js';
-export * from './SSEServerTransport.js';
-export * from './SequentialMcpServer.js';
-export * from './McpServerFactory.js';
-export * from './RoblexStudioSequentialMcp.js';
-export * from './RoblexStudioService.js'; 
+export * from './McpServer';
+export * from './McpHelpers';
+export * from './McpServerFactory';
+export * from './SSEServerTransport';
+export * from './StdioServerTransport';
+export * from './SequentialMcpServer';
+export * from './RoblexStudioSequentialMcp';
+export * from './RoblexStudioService';

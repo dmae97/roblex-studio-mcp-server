@@ -62,8 +62,9 @@ export const sequentialTestTools = {
     });
     
     // Add a long-running tool to test cancellation
-    server.tool('LongRunningTool', async (args) => {
-      const duration = args.duration || 10000; // Default to 10 seconds
+    server.tool('LongRunningTool', async (args: any) => {
+      // 타입스크립트 오류 수정: undefined 체크 추가
+      const duration = args && args.duration ? args.duration : 10000; // Default to 10 seconds
       logger.info(`Executing LongRunningTool for ${duration}ms`);
       
       // Report progress
@@ -80,7 +81,8 @@ export const sequentialTestTools = {
           const timeout = setTimeout(resolve, duration);
           
           // Allow for external cancellation (in a real tool)
-          if (args.shouldFail) {
+          // 타입스크립트 오류 수정: undefined 체크 추가
+          if (args && args.shouldFail) {
             clearTimeout(timeout);
             reject(new Error('Task was cancelled'));
           }

@@ -1,8 +1,8 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
-import { logger } from './logger.js';
-import { generateSessionId } from './auth.js';
-import { globalContext } from '../models/index.js';
+import { logger } from './logger';
+import { generateSessionId } from './auth';
+import { globalContext } from '../models/index';
 
 /**
  * WebSocket synchronization system for real-time data updates
@@ -526,4 +526,4 @@ async function handlePing(data: any, connectionId: string): Promise<any> {
     timestamp: new Date().toISOString(),
     connectionId
   };
-} 
+}
