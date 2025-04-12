@@ -1,9 +1,9 @@
 /**
  * Simple logging utility for Roblex Studio MCP Server
  */
-import { Logger } from '../sdk';
+import { Logger } from '../sdk'; // 참고: 이 import 경로는 나중에 확인/수정해야 할 수 있습니다.
 
-// 확장된 로거 인터페이스
+// 확장된 로거 인터페이스 (참고: Updated upstream 버전에서는 직접 사용되지 않음)
 export interface ExtendedLogger extends Logger {
     logRequest(endpoint: string, request: any): void;
     logResponse(endpoint: string, response: any): void;
@@ -18,7 +18,6 @@ export enum LogLevel {
   ERROR = 'error'
 }
 
-<<<<<<< Updated upstream
 // 로그 레벨에 따른 우선순위 (낮을수록 더 많은 로그)
 const LOG_PRIORITIES: Record<string, number> = {
   [LogLevel.DEBUG]: 0,
@@ -33,7 +32,7 @@ const LOG_LEVEL = (process.env.LOG_LEVEL as LogLevel) || LogLevel.INFO;
 // 현재 로그 레벨의 우선순위
 let currentLogPriority = LOG_PRIORITIES[LOG_LEVEL] || LOG_PRIORITIES[LogLevel.INFO];
 
-// ANSI 색상 코드
+// ANSI 색상 코드 (참고: Updated upstream 버전에서는 직접 사용되지 않음)
 const COLORS: Record<string, string> = {
   reset: '\x1b[0m',
   debug: '\x1b[36m', // 청록색
@@ -44,7 +43,7 @@ const COLORS: Record<string, string> = {
 };
 
 /**
- * 현재 시간을 ISO 형식 문자열로 반환
+ * 현재 시간을 ISO 형식 문자열로 반환 (참고: Updated upstream 버전에서는 직접 사용되지 않음)
  */
 function getTimestamp(): string {
   return new Date().toISOString();
@@ -63,10 +62,10 @@ function log(level: LogLevel, message: string, meta?: Record<string, unknown>): 
   }
 
   const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
-  
+
   // 표준 에러(stderr)로 로그 출력 (타임스탬프, 레벨, 색상 제거)
   console.error(
-    `${message}${metaStr}` 
+    `${message}${metaStr}`
   );
 }
 
@@ -90,15 +89,15 @@ export const logger = {
   debug(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.DEBUG, message, meta);
   },
-  
+
   info(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.INFO, message, meta);
   },
-  
+
   warn(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.WARN, message, meta);
   },
-  
+
   error(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.ERROR, message, meta);
   }
@@ -111,15 +110,15 @@ export const studioLogger = {
   debug(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.DEBUG, message, { ...meta, context: 'studio' });
   },
-  
+
   info(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.INFO, message, { ...meta, context: 'studio' });
   },
-  
+
   warn(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.WARN, message, { ...meta, context: 'studio' });
   },
-  
+
   error(message: string, meta?: Record<string, unknown>): void {
     log(LogLevel.ERROR, message, { ...meta, context: 'studio' });
   }
@@ -133,15 +132,15 @@ export function createModelLogger(modelType: string, modelId: string) {
     debug(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.DEBUG, message, { ...meta, modelType, modelId, context: 'model' });
     },
-    
+
     info(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.INFO, message, { ...meta, modelType, modelId, context: 'model' });
     },
-    
+
     warn(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.WARN, message, { ...meta, modelType, modelId, context: 'model' });
     },
-    
+
     error(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.ERROR, message, { ...meta, modelType, modelId, context: 'model' });
     }
@@ -156,15 +155,15 @@ export function createSessionLogger(sessionId: string, studioId?: string) {
     debug(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.DEBUG, message, { ...meta, sessionId, studioId, context: 'session' });
     },
-    
+
     info(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.INFO, message, { ...meta, sessionId, studioId, context: 'session' });
     },
-    
+
     warn(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.WARN, message, { ...meta, sessionId, studioId, context: 'session' });
     },
-    
+
     error(message: string, meta?: Record<string, unknown>): void {
       log(LogLevel.ERROR, message, { ...meta, sessionId, studioId, context: 'session' });
     }
@@ -190,11 +189,11 @@ export function logServerShutdown(): void {
  */
 export function requestLogger(req: any, res: any, next: Function): void {
   const start = Date.now();
-  
+
   // 응답 완료 후 로깅
   res.on('finish', () => {
     const duration = Date.now() - start;
-    
+
     logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${duration}ms`, {
       method: req.method,
       url: req.originalUrl,
@@ -204,60 +203,6 @@ export function requestLogger(req: any, res: any, next: Function): void {
       userAgent: req.get('user-agent') || 'unknown'
     });
   });
-  
+
   next();
 }
-=======
-// 로깅 유틸리티
-const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
-
-// Helper function to get timestamp
-const getTimestamp = (): string => {
-    return new Date().toISOString();
-};
-
-// Logger implementation
-export const logger: ExtendedLogger = {
-    debug: (message: string): void => {
-        if (LOG_LEVEL === 'debug') {
-            console.log(`[${getTimestamp()}] [DEBUG] ${message}`);
-        }
-    },
-    
-    info: (message: string): void => {
-        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info') {
-            console.log(`[${getTimestamp()}] [INFO] ${message}`);
-        }
-    },
-    
-    warn: (message: string): void => {
-        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info' || LOG_LEVEL === 'warn') {
-            console.warn(`[${getTimestamp()}] [WARN] ${message}`);
-        }
-    },
-    
-    error: (message: string): void => {
-        console.error(`[${getTimestamp()}] [ERROR] ${message}`);
-    },
-    
-    // 요청과 응답을 자세히 로깅하는 함수 추가
-    logRequest: (endpoint: string, request: any): void => {
-        if (LOG_LEVEL === 'debug') {
-            console.log(`[${getTimestamp()}] [DEBUG] 수신된 요청 - ${endpoint}: ${JSON.stringify(request, null, 2)}`);
-        }
-    },
-    
-    logResponse: (endpoint: string, response: any): void => {
-        if (LOG_LEVEL === 'debug') {
-            console.log(`[${getTimestamp()}] [DEBUG] 전송된 응답 - ${endpoint}: ${JSON.stringify(response, null, 2)}`);
-        }
-    },
-    
-    // MCP 프로토콜 관련 이벤트 로깅
-    logMcpEvent: (eventType: string, details: any): void => {
-        if (LOG_LEVEL === 'debug' || LOG_LEVEL === 'info') {
-            console.log(`[${getTimestamp()}] [MCP] ${eventType}: ${JSON.stringify(details, null, 2)}`);
-        }
-    }
-};
->>>>>>> Stashed changes

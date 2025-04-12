@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
@@ -13,4 +13,11 @@ export default {
       },
     ],
   },
-}; 
+  testMatch: [
+    '**/src/**/__tests__/**/*.test.[jt]s?(x)'
+  ],
+  testPathIgnorePatterns: [
+    '/dist/',
+    '\\.d\\.ts$'
+  ]
+};

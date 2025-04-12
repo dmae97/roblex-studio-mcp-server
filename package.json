@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Model-Context-Protocol server for Roblex Studio",
   "main": "dist/index.js",
+  "bin": {
+    "roblex-mcp": "bin/cli.js"
+  },
   "type": "commonjs",
   "scripts": {
     "clean": "rimraf dist",

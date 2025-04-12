@@ -14,8 +14,8 @@ import { globalContext, globalProtocol, roblexStudioAdapterFactory } from './mod
 import * as auth from './utils/auth.js';
 import { security } from './utils/security.js';
 
-// Import our own implementations instead of from typescript-sdk
-import { McpServer } from './server/McpServer.js';
+// Import from SDK instead of local implementation
+import { McpServer } from '@modelcontextprotocol/sdk';
 import { SSEServerTransport } from './server/SSEServerTransport.js';
 import { StdioServerTransport } from './server/StdioServerTransport.js';
 
@@ -64,7 +64,7 @@ if (TRANSPORT_MODE === 'stdio') {
   logger.info(`Starting MCP Server in STDIO mode for Claude Desktop`);
   
   // Create appropriate MCP Server based on configuration
-  let server: McpServer;
+  let server: any;
   
   if (USE_SEQUENTIAL) {
     // Create a Sequential MCP Server
@@ -81,7 +81,7 @@ if (TRANSPORT_MODE === 'stdio') {
     server = new McpServer({
       name: SERVER_NAME,
       version: SERVER_VERSION,
-      logger // Pass the custom logger
+      logger // SDK가 logger 옵션을 지원하는 경우
     });
     
     logger.info('Using standard MCP server');
@@ -125,7 +125,7 @@ if (TRANSPORT_MODE === 'stdio') {
   // HTTP/SSE mode for the server
   
   // Create appropriate MCP Server based on configuration
-  let server: McpServer;
+  let server: any;
   
   if (USE_SEQUENTIAL) {
     // Create a Sequential MCP Server

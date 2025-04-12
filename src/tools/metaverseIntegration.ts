@@ -1,6 +1,6 @@
 // import { Tool } from '@modelcontextprotocol/sdk/server/mcp.js'; // Assuming Tool is exported from here, adjust if needed
 // Temporarily remove type annotation if Tool type path is incorrect
-import axios from 'axios';
+const axios = require('axios');
 import dotenv from 'dotenv';
 
 dotenv.config();

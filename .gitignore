@@ -12,3 +12,11 @@ mcp_settings.json
 *.config.local
 *.secrets.*
 node_modules
+*dist
+*bin
+*.log
+*.log.*
+*.log.*.*
+*.log.*.*.*
+*.log.*.*.*.*
+*.log.*.*.*.*.*

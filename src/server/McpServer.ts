@@ -33,7 +33,7 @@ export interface McpServerOptions {
  * This is a facade that wraps the SDK McpServer to provide compatibility
  * and our own extensions
  */
-export class McpServer extends EventEmitter implements SdkMcpServer {
+export class McpServer extends EventEmitter {
   private _name: string;
   private _version: string;
   private _tools: Map<string, ToolCallback>;
